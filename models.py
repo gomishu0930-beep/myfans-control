@@ -210,6 +210,23 @@ class ComplianceLog(Base):
     post_draft = relationship("PostDraft", back_populates="compliance_logs")
 
 
+class AutoImportJob(Base):
+    __tablename__ = "auto_import_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    affiliate_url = Column(String(500), nullable=False)
+    myfans_url = Column(String(500))
+    username = Column(String(200))
+    display_name = Column(String(200))
+    creator_id = Column(Integer, ForeignKey("creators.id"), nullable=True)
+    posts_fetched = Column(Integer, default=0)
+    assets_created = Column(Integer, default=0)
+    drafts_created = Column(Integer, default=0)
+    status = Column(String(50), default="pending")
+    error_message = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class AppSettings(Base):
     __tablename__ = "app_settings"
 
