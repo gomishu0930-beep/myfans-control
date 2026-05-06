@@ -33,6 +33,12 @@
             <i class="bi bi-cloud-upload"></i> インポート
           </a>
           <ul class="dropdown-menu dropdown-menu-dark">
+            <li>
+              <a class="dropdown-item {% if '/auto-import' in request.url.path %}active{% endif %}" href="/auto-import">
+                <i class="bi bi-magic"></i> <strong>全自動取込 ✨</strong>
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="/import/urls"><i class="bi bi-link"></i> URL一括投入</a></li>
             <li><a class="dropdown-item" href="/import/csv"><i class="bi bi-filetype-csv"></i> CSV取込</a></li>
             <li><a class="dropdown-item" href="/creator-intake"><i class="bi bi-person-plus"></i> クリエイター申請フォーム</a></li>
