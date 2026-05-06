@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+{% block title %}アフィリリンク自動取込 - MyFans Control Tower{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+  <div class="col">
+    <h4 class="fw-bold mb-0"><i class="bi bi-magic text-purple"></i> アフィリリンク全自動取込</h4>
+    <small class="text-muted">アフィリリンクを貼るだけでクリエイター情報・投稿・サンプル画像を全自動取得</small>
+  </div>
+</div>
+
+<!-- 入力フォーム -->
+<div class="card mb-4" id="inputCard">
+  <div class="card-header"><i class="bi bi-link-45deg"></i> アフィリリンクを入力</div>
+  <div class="card-body">
+    <div class="mb-3">
+      <label class="form-label fw-semibold">アフィリエイトリンク</label>
+      <textarea class="form-control font-monospace" id="affiliateUrlInput" rows="3"
+        placeholder="https://myfans.jp/creator_name?via=XXXXX&#10;または短縮URL・リダイレクトURLも可"></textarea>
+      <div class="form-text">MyFansのクリエイターページURL・アフィリリンク・短縮URLに対応。複数行入力で一括処理も可能。</div>
+    </div>
+
+    <!-- オプション（折りたたみ） -->
+    <div class="mb-3">
+      <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#importOptions">
+        <i class="bi bi-sliders"></i> 詳細オプション
+      </a>
+    </div>
+    <div class="collapse" id="importOptions">
+      <div class="card card-body bg-light mb-3">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">カテゴリ</label>
+            <select class="form-select form-select-sm" id="optCategory">
+              <option value="">未設定</option>
+              <option value="アイドル">アイドル</option>
+              <option value="コスプレ">コスプレ</option>
+              <option value="グラビア">グラビア</option>
+              <option value="配信者">配信者</option>
+              <option value="モデル">モデル</option>
+              <option value="一般">一般</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">報酬率 (%)</label>
+            <input type="number" class="form-control form-control-sm" id="optCommissionRate" value="10" min="1" max="50">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">平均単価 (円)</label>
+            <input type="number" class="form-control form-control-sm" id="optEstimatedAov" value="5000" min="100">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">タグ（カンマ区切り）</label>
+            <input type="text" class="form-control form-control-sm" id="optTags" placeholder="巨乳, コスプレ, 人気">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Xアカウント</label>
+            <input type="text" class="form-control form-control-sm" id="optXAccount" placeholder="@yourhandle">
+          </div>
+          <div class="col-12">
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" id="optGenerateDrafts" checked>
+              <label class="form-check-label">下書きを自動生成する</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" id="optUpdateExisting">
+              <label class="form-check-label">既存クリエイターを上書き更新する</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary px-4" id="startBtn" onclick="startImport()">
+      <i class="bi bi-play-circle"></i> 自動取込を開始
+    </button>
+  </div>
+</div>
+
+<!-- 進捗表示 -->
+<div class="card mb-4 d-none" id="progressCard">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-gear-wide-connected spin"></i> 取込中...</span>
+    <span class="badge bg-warning text-dark" id="progressBadge">実行中</span>
+  </div>
+  <div class="card-body">
+    <div class="progress mb-3" style="height:8px">
+      <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="progressBar" style="width:0%"></div>
+    </div>
+    <div class="mb-2">
+      <strong id="progressStep">初期化中...</strong>
+      <span class="text-muted ms-2" id="progressDetail"></span>
+    </div>
+    <div id="progressLogs" class="bg-dark text-success font-monospace small p-2 rounded" style="max-height:150px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- プレビュー結果 -->
+<div class="d-none" id="resultSection">
+
+  <!-- クリエイター情報 -->
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-person-circle"></i> 取得クリエイター情報</span>
+      <span class="badge bg-success" id="creatorBadge"></span>
+    </div>
+    <div class="card-body">
+      <div class="row align-items-center">
+        <div class="col-auto">
+          <img id="previewProfileImg" src="" alt="" class="rounded-circle"
+            style="width:80px;height:80px;object-fit:cover;border:3px solid #7c3aed;display:none">
+          <div id="previewProfilePlaceholder" class="rounded-circle bg-secondary d-flex align-items-center justify-content-center"
+            style="width:80px;height:80px">
+            <i class="bi bi-person fs-2 text-white"></i>
+          </div>
+        </div>
+        <div class="col">
+          <h5 class="mb-1" id="previewName">-</h5>
+          <div class="text-muted small mb-1" id="previewUsername"></div>
+          <p class="mb-1 small" id="previewBio" style="max-height:60px;overflow:hidden"></p>
+          <div class="d-flex gap-3 small text-muted">
+            <span><i class="bi bi-people"></i> フォロワー: <strong id="previewFollowers">-</strong></span>
+            <span><i class="bi bi-file-post"></i> 投稿数: <strong id="previewPostCount">-</strong></span>
+            <span id="previewXHandle"></span>
+          </div>
+        </div>
+        <div class="col-auto">
+          <a id="previewMyfansLink" href="#" target="_blank" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-box-arrow-up-right"></i> MyFansを開く
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- アフィリリンク -->
+  <div class="card mb-3">
+    <div class="card-header"><i class="bi bi-link-45deg"></i> アフィリエイトリンク</div>
+    <div class="card-body">
+      <div class="input-group">
+        <input type="text" class="form-control font-monospace small" id="previewAffiliateUrl" readonly>
+        <button class="btn btn-outline-secondary" onclick="copyText(document.getElementById('previewAffiliateUrl').value)">
+          <i class="bi bi-clipboard"></i> コピー
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 投稿一覧 -->
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-images"></i> 取得投稿・サンプル画像</span>
+      <div>
+        <button class="btn btn-sm btn-outline-secondary me-1" onclick="selectAllPosts(true)">全選択</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="selectAllPosts(false)">全解除</button>
+      </div>
+    </div>
+    <div class="card-body p-2">
+      <div class="row g-2" id="postsGrid"></div>
+    </div>
+  </div>
+
+  <!-- 保存オプション・確定 -->
+  <div class="card mb-4">
+    <div class="card-header"><i class="bi bi-check2-circle"></i> DBに保存して取込確定</div>
+    <div class="card-body">
+      <div class="alert alert-warning small mb-3">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>注意:</strong> 取得した画像・テキストはMyFans公式素材です。使用前にクリエイターの許諾状況を必ず確認してください。
+        素材の権利確認ステータスは「審査中」で登録されます。
+      </div>
+      <div class="d-flex gap-3">
+        <button class="btn btn-success px-4" onclick="saveImport()">
+          <i class="bi bi-database-add"></i> 選択した投稿を保存・クリエイター登録
+        </button>
+        <button class="btn btn-outline-secondary" onclick="resetForm()">
+          <i class="bi bi-arrow-counterclockwise"></i> やり直す
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- エラー表示 -->
+<div class="alert alert-danger d-none" id="errorAlert">
+  <i class="bi bi-exclamation-octagon"></i> <span id="errorMsg"></span>
+</div>
+
+<!-- 保存完了 -->
+<div class="alert alert-success d-none" id="successAlert">
+  <i class="bi bi-check-circle"></i> <span id="successMsg"></span>
+  <div class="mt-2" id="successLinks"></div>
+</div>
+
+<!-- 取込履歴 -->
+{% if history %}
+<div class="card mt-4">
+  <div class="card-header"><i class="bi bi-clock-history"></i> 取込履歴</div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-hover mb-0">
+      <thead>
+        <tr>
+          <th>日時</th><th>クリエイター</th><th>投稿</th><th>素材</th><th>下書き</th><th>状態</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for job in history %}
+        <tr>
+          <td class="text-muted small">{{ job.created_at.strftime('%m/%d %H:%M') }}</td>
+          <td>
+            <strong>{{ job.display_name or job.username }}</strong>
+            <div class="text-muted small">{{ job.myfans_url or '' }}</div>
+          </td>
+          <td class="text-center">{{ job.posts_fetched }}</td>
+          <td class="text-center">{{ job.assets_created }}</td>
+          <td class="text-center">{{ job.drafts_created }}</td>
+          <td>
+            {% if job.status == 'completed' %}
+              <span class="badge bg-success">完了</span>
+            {% elif job.status == 'error' %}
+              <span class="badge bg-danger">エラー</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ job.status }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if job.creator_id %}
+            <a href="/creators/{{ job.creator_id }}/edit" class="btn btn-xs btn-outline-primary btn-sm">詳細</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+.spin { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.post-card { cursor: pointer; transition: all .15s; border: 2px solid transparent; }
+.post-card.selected { border-color: #7c3aed !important; background: #f5f3ff; }
+.post-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(124,58,237,.2); }
+.post-thumb { width: 100%; height: 140px; object-fit: cover; border-radius: 6px; }
+.post-thumb-placeholder { width: 100%; height: 140px; background: #e9ecef; border-radius: 6px; display:flex; align-items:center; justify-content:center; }
+.sample-imgs { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.sample-imgs img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #dee2e6; }
+</style>
+
+<script>
+let currentResult = null;
+let currentJobId = null;
+let sseSource = null;
+
+const STEPS = [
+  'リダイレクト解決中',
+  'URL解決完了',
+  'クリエイター情報取得中',
+  '投稿一覧取得中',
+  'HTMLスクレイピング中',
+  '画像ダウンロード中',
+  '取込完了',
+];
+
+function getProgressPct(step) {
+  const idx = STEPS.findIndex(s => step.includes(s.slice(0, 6)));
+  if (idx < 0) return 40;
+  return Math.round((idx + 1) / STEPS.length * 90);
+}
+
+async function startImport() {
+  const urls = document.getElementById('affiliateUrlInput').value.trim().split('\n').filter(u => u.trim());
+  if (!urls.length) { alert('URLを入力してください'); return; }
+
+  // 1件ずつ処理（複数行の場合は最初の1件）
+  const url = urls[0].trim();
+
+  // UI初期化
+  document.getElementById('errorAlert').classList.add('d-none');
+  document.getElementById('successAlert').classList.add('d-none');
+  document.getElementById('resultSection').classList.add('d-none');
+  document.getElementById('progressCard').classList.remove('d-none');
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('progressBar').style.width = '5%';
+  document.getElementById('progressLogs').innerHTML = '';
+
+  // ジョブ開始
+  const fd = new FormData();
+  fd.append('affiliate_url', url);
+  const resp = await fetch('/auto-import/start', { method: 'POST', body: fd });
+  const { job_id } = await resp.json();
+  currentJobId = job_id;
+
+  // SSE で進捗購読
+  if (sseSource) sseSource.close();
+  sseSource = new EventSource(`/auto-import/stream/${job_id}`);
+  sseSource.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    updateProgress(data);
+    if (data.status === 'done') {
+      sseSource.close();
+      showResult(data.result);
+    } else if (data.status === 'error') {
+      sseSource.close();
+      showError(data.error || data.detail || '不明なエラー');
+    }
+  };
+  sseSource.onerror = function() {
+    sseSource.close();
+    // フォールバック: ポーリング
+    pollJob(job_id);
+  };
+}
+
+function updateProgress(data) {
+  const step = data.step || '';
+  const detail = data.detail || '';
+  document.getElementById('progressStep').textContent = step;
+  document.getElementById('progressDetail').textContent = detail;
+  const pct = data.status === 'done' ? 100 : getProgressPct(step);
+  document.getElementById('progressBar').style.width = pct + '%';
+
+  const logs = data.logs || [];
+  const logsEl = document.getElementById('progressLogs');
+  logsEl.innerHTML = logs.map(l => `<div>▶ ${l}</div>`).join('');
+  logsEl.scrollTop = logsEl.scrollHeight;
+
+  if (data.status === 'done') {
+    document.getElementById('progressBadge').textContent = '完了';
+    document.getElementById('progressBadge').className = 'badge bg-success';
+  } else if (data.status === 'error') {
+    document.getElementById('progressBadge').textContent = 'エラー';
+    document.getElementById('progressBadge').className = 'badge bg-danger';
+  }
+}
+
+async function pollJob(jobId) {
+  let tries = 0;
+  while (tries < 120) {
+    await new Promise(r => setTimeout(r, 1000));
+    tries++;
+    try {
+      const resp = await fetch(`/auto-import/stream/${jobId}`);
+      // SSE response — can't parse directly via fetch easily; just poll status endpoint
+    } catch {}
+    // use a separate status check
+    const r = await fetch(`/auto-import/status/${jobId}`);
+    if (r.ok) {
+      const data = await r.json();
+      updateProgress(data);
+      if (data.status === 'done') { showResult(data.result); return; }
+      if (data.status === 'error') { showError(data.error); return; }
+    }
+  }
+  showError('タイムアウト: 取込が完了しませんでした');
+}
+
+function showResult(result) {
+  if (!result) { showError('結果データが空です'); return; }
+  currentResult = result;
+  document.getElementById('progressCard').classList.add('d-none');
+  document.getElementById('resultSection').classList.remove('d-none');
+  document.getElementById('startBtn').disabled = false;
+
+  // クリエイター情報
+  document.getElementById('previewName').textContent = result.display_name || result.username;
+  document.getElementById('previewUsername').textContent = '@' + result.username;
+  document.getElementById('previewBio').textContent = result.bio || '(プロフィールなし)';
+  document.getElementById('previewFollowers').textContent = (result.follower_count || 0).toLocaleString();
+  document.getElementById('previewPostCount').textContent = (result.post_count || 0).toLocaleString();
+  document.getElementById('creatorBadge').textContent = result.display_name;
+
+  if (result.x_handle) {
+    document.getElementById('previewXHandle').innerHTML = `<i class="bi bi-twitter-x"></i> ${result.x_handle}`;
+  }
+
+  const profileImg = result.local_profile_image || result.profile_image_url;
+  if (profileImg) {
+    document.getElementById('previewProfileImg').src = profileImg;
+    document.getElementById('previewProfileImg').style.display = 'block';
+    document.getElementById('previewProfilePlaceholder').style.display = 'none';
+  }
+
+  document.getElementById('previewMyfansLink').href = result.myfans_url;
+  document.getElementById('previewAffiliateUrl').value = result.affiliate_url;
+
+  // 投稿グリッド
+  renderPostsGrid(result.posts || []);
+}
+
+function renderPostsGrid(posts) {
+  const grid = document.getElementById('postsGrid');
+  if (!posts.length) {
+    grid.innerHTML = '<div class="col-12 text-center text-muted py-4"><i class="bi bi-inbox fs-2"></i><div>投稿データを取得できませんでした</div><div class="small">クリエイターページが非公開またはAPIアクセスが制限されている可能性があります</div></div>';
+    return;
+  }
+  grid.innerHTML = posts.map((p, i) => {
+    const thumb = p.local_thumbnail || p.thumbnail_url;
+    const thumbHtml = thumb
+      ? `<img src="${thumb}" class="post-thumb" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="post-thumb-placeholder"><i class="bi bi-image text-muted fs-3"></i></div>`;
+    const sampleHtml = (p.local_images && p.local_images.length)
+      ? `<div class="sample-imgs">${p.local_images.slice(0,4).map(img => `<img src="${img}" loading="lazy">`).join('')}</div>`
+      : (p.sample_image_urls && p.sample_image_urls.length)
+      ? `<div class="sample-imgs">${p.sample_image_urls.slice(0,4).map(img => `<img src="${img}" loading="lazy">`).join('')}</div>`
+      : '';
+    const priceBadge = p.is_free
+      ? `<span class="badge bg-success">無料</span>`
+      : `<span class="badge bg-warning text-dark">¥${(p.price || 0).toLocaleString()}</span>`;
+    return `
+      <div class="col-6 col-md-4 col-lg-3">
+        <div class="card post-card selected" data-post-id="${p.post_id}" onclick="togglePost(this)">
+          <div class="card-body p-2">
+            ${thumbHtml}
+            ${sampleHtml}
+            <div class="mt-1">
+              <div class="small fw-semibold text-truncate" title="${p.title}">${p.title || '(タイトルなし)'}</div>
+              <div class="d-flex justify-content-between align-items-center mt-1">
+                ${priceBadge}
+                <span class="badge bg-light text-dark"><i class="bi bi-check2-square"></i> 選択中</span>
+              </div>
+              ${p.body ? `<div class="text-muted small mt-1" style="max-height:40px;overflow:hidden">${p.body.slice(0,60)}</div>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function togglePost(el) {
+  el.classList.toggle('selected');
+  const badge = el.querySelector('.badge.bg-light');
+  if (el.classList.contains('selected')) {
+    badge.innerHTML = '<i class="bi bi-check2-square"></i> 選択中';
+    badge.className = 'badge bg-light text-dark';
+  } else {
+    badge.innerHTML = '<i class="bi bi-square"></i> 未選択';
+    badge.className = 'badge bg-secondary';
+  }
+}
+
+function selectAllPosts(select) {
+  document.querySelectorAll('.post-card').forEach(el => {
+    const badge = el.querySelector('.badge.bg-light, .badge.bg-secondary');
+    if (select) {
+      el.classList.add('selected');
+      if (badge) { badge.innerHTML = '<i class="bi bi-check2-square"></i> 選択中'; badge.className = 'badge bg-light text-dark'; }
+    } else {
+      el.classList.remove('selected');
+      if (badge) { badge.innerHTML = '<i class="bi bi-square"></i> 未選択'; badge.className = 'badge bg-secondary'; }
+    }
+  });
+}
+
+function getSelectedPostIds() {
+  return [...document.querySelectorAll('.post-card.selected')].map(el => el.dataset.postId);
+}
+
+async function saveImport() {
+  if (!currentResult) return;
+  const selectedIds = getSelectedPostIds();
+  const payload = {
+    result: currentResult,
+    options: {
+      category: document.getElementById('optCategory').value,
+      commission_rate: parseFloat(document.getElementById('optCommissionRate').value) || 10,
+      estimated_aov: parseFloat(document.getElementById('optEstimatedAov').value) || 5000,
+      tags: document.getElementById('optTags').value,
+      x_account: document.getElementById('optXAccount').value,
+      generate_drafts: document.getElementById('optGenerateDrafts').checked,
+      update_existing: document.getElementById('optUpdateExisting').checked,
+      selected_post_ids: selectedIds,
+    }
+  };
+  const btn = event.target;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 保存中...';
+
+  try {
+    const resp = await fetch('/auto-import/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      document.getElementById('successMsg').textContent = data.message;
+      document.getElementById('successLinks').innerHTML = `
+        <a href="/creators/${data.creator_id}/edit" class="btn btn-sm btn-outline-success me-2">
+          <i class="bi bi-person"></i> クリエイター詳細
+        </a>
+        <a href="/assets" class="btn btn-sm btn-outline-info me-2">
+          <i class="bi bi-images"></i> 素材一覧
+        </a>
+        <a href="/drafts" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-pencil-square"></i> 下書き一覧
+        </a>`;
+      document.getElementById('successAlert').classList.remove('d-none');
+      document.getElementById('resultSection').classList.add('d-none');
+    } else {
+      showError(data.error || '保存に失敗しました');
+    }
+  } catch (e) {
+    showError('通信エラー: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-database-add"></i> 選択した投稿を保存・クリエイター登録';
+  }
+}
+
+function showError(msg) {
+  document.getElementById('errorMsg').textContent = msg;
+  document.getElementById('errorAlert').classList.remove('d-none');
+  document.getElementById('progressCard').classList.add('d-none');
+  document.getElementById('startBtn').disabled = false;
+}
+
+function resetForm() {
+  currentResult = null;
+  document.getElementById('resultSection').classList.add('d-none');
+  document.getElementById('successAlert').classList.add('d-none');
+  document.getElementById('errorAlert').classList.add('d-none');
+  document.getElementById('progressCard').classList.add('d-none');
+  document.getElementById('affiliateUrlInput').value = '';
+  window.scrollTo(0, 0);
+}
+</script>
+{% endblock %}
