@@ -12,7 +12,7 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="/dashboard">
+    <a class="navbar-brand fw-bold" href="/generator">
       <i class="bi bi-tower"></i> MyFans Control Tower
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -20,6 +20,11 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link {% if request.url.path == '/generator' %}active{% endif %}" href="/generator">
+            <i class="bi bi-stars"></i> 投稿生成
+          </a>
+        </li>
         <li class="nav-item">
           <a class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}" href="/dashboard">
             <i class="bi bi-speedometer2"></i> ダッシュボード

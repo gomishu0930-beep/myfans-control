@@ -46,10 +46,11 @@ app.include_router(auto_import_router)
 
 @app.get("/")
 async def root():
-    return RedirectResponse("/dashboard")
+    return RedirectResponse("/generator")
 
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 5000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    reload_enabled = os.getenv("RELOAD", "").lower() in ("1", "true", "yes")
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=reload_enabled)

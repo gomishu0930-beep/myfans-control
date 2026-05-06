@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}投稿生成 - MyFans Control Tower{% endblock %}
+
+{% block content %}
+<div class="generator-shell">
+  <section class="generator-hero mb-3">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-stars"></i> URLから投稿セットを生成</h3>
+      <div class="text-muted">アフィリURLを貼るだけで、投稿文・画像生成AI用プロンプト・動画生成AI用プロンプトをまとめて作ります。</div>
+    </div>
+  </section>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card control-card">
+        <div class="card-header"><i class="bi bi-link-45deg"></i> 1. URLを貼る</div>
+        <div class="card-body">
+          <label class="form-label fw-semibold">MyFans / アフィリエイトURL</label>
+          <textarea id="urlInput" class="form-control font-monospace" rows="5" placeholder="https://myfans.jp/..."></textarea>
+
+          <div class="row g-2 mt-2">
+            <div class="col-6">
+              <label class="form-label small">文体</label>
+              <select id="toneSelect" class="form-select form-select-sm">
+                <option value="friendly">自然・親しみ</option>
+                <option value="premium">上品・大人向け</option>
+                <option value="urgent">保存推奨</option>
+                <option value="soft">やわらかめ</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small">投稿先</label>
+              <select id="platformSelect" class="form-select form-select-sm">
+                <option value="x">X</option>
+                <option value="threads">Threads</option>
+                <option value="instagram">Instagram</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="generateBtn" class="btn btn-primary w-100 mt-3" onclick="generatePack()">
+            <i class="bi bi-magic"></i> 生成する
+          </button>
+          <div class="small text-muted mt-2"><code>ANTHROPIC_API_KEY</code> がある場合はClaude Opusを優先します。未設定ならOpenAI、どちらも未設定なら内蔵テンプレートで生成します。</div>
+        </div>
+      </div>
+
+      <div class="card mt-3 d-none" id="creatorCard">
+        <div class="card-header"><i class="bi bi-person-circle"></i> 取得情報</div>
+        <div class="card-body">
+          <div class="d-flex gap-3 align-items-center">
+            <img id="creatorImage" class="creator-avatar d-none" alt="">
+            <div class="creator-avatar-placeholder" id="creatorImagePlaceholder"><i class="bi bi-person"></i></div>
+            <div class="min-w-0">
+              <div class="fw-bold text-truncate" id="creatorName"></div>
+              <div class="small text-muted text-truncate" id="creatorMeta"></div>
+            </div>
+          </div>
+          <p class="small text-muted mt-2 mb-0" id="creatorBio"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="alert alert-danger d-none" id="errorAlert"></div>
+      <div class="alert alert-warning d-none" id="warningAlert"></div>
+
+      <div class="empty-state" id="emptyState">
+        <i class="bi bi-clipboard-check"></i>
+        <div class="fw-semibold">ここにコピペ用の生成結果が表示されます</div>
+        <div class="small text-muted">まず左側にURLを貼って「生成する」を押してください。</div>
+      </div>
+
+      <div class="d-none" id="resultArea">
+        <div class="copy-grid">
+          <section class="copy-panel">
+            <div class="copy-panel-head">
+              <span><i class="bi bi-chat-square-text"></i> 投稿文</span>
+              <button class="btn btn-sm btn-outline-secondary" onclick="copyFrom('postText')"><i class="bi bi-copy"></i> コピー</button>
+            </div>
+            <textarea id="postText" class="form-control font-monospace copy-textarea" rows="9"></textarea>
+          </section>
+
+          <section class="copy-panel">
+            <div class="copy-panel-head">
+              <span><i class="bi bi-lightning-charge"></i> 短文版</span>
+              <button class="btn btn-sm btn-outline-secondary" onclick="copyFrom('shortText')"><i class="bi bi-copy"></i> コピー</button>
+            </div>
+            <textarea id="shortText" class="form-control font-monospace copy-textarea" rows="5"></textarea>
+          </section>
+
+          <section class="copy-panel">
+            <div class="copy-panel-head">
+              <span><i class="bi bi-image"></i> 画像生成AIプロンプト</span>
+              <button class="btn btn-sm btn-outline-secondary" onclick="copyFrom('imagePrompt')"><i class="bi bi-copy"></i> コピー</button>
+            </div>
+            <textarea id="imagePrompt" class="form-control font-monospace copy-textarea" rows="6"></textarea>
+          </section>
+
+          <section class="copy-panel">
+            <div class="copy-panel-head">
+              <span><i class="bi bi-camera-video"></i> 動画生成AIプロンプト</span>
+              <button class="btn btn-sm btn-outline-secondary" onclick="copyFrom('videoPrompt')"><i class="bi bi-copy"></i> コピー</button>
+            </div>
+            <textarea id="videoPrompt" class="form-control font-monospace copy-textarea" rows="6"></textarea>
+          </section>
+        </div>
+
+        <section class="copy-panel mt-3">
+          <div class="copy-panel-head">
+            <span><i class="bi bi-hash"></i> ハッシュタグ・別案</span>
+            <button class="btn btn-sm btn-outline-secondary" onclick="copyFrom('variantsText')"><i class="bi bi-copy"></i> まとめてコピー</button>
+          </div>
+          <textarea id="variantsText" class="form-control font-monospace copy-textarea" rows="5"></textarea>
+        </section>
+
+        <section class="copy-panel mt-3 d-none" id="sampleMediaPanel">
+          <div class="copy-panel-head">
+            <span><i class="bi bi-images"></i> 投稿サンプル画像</span>
+            <span class="small text-muted">使う前に権利・許諾を確認</span>
+          </div>
+          <div class="sample-media-grid" id="sampleMediaGrid"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generatePack() {
+  const url = document.getElementById('urlInput').value.trim();
+  const btn = document.getElementById('generateBtn');
+  hideMessage('errorAlert');
+  hideMessage('warningAlert');
+  if (!url) {
+    showMessage('errorAlert', 'URLを入力してください');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 生成中...';
+  try {
+    const resp = await fetch('/generator/generate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        url,
+        tone: document.getElementById('toneSelect').value,
+        platform: document.getElementById('platformSelect').value,
+      }),
+    });
+    const data = await resp.json();
+    if (!data.ok) {
+      showMessage('errorAlert', data.error || '生成に失敗しました');
+      return;
+    }
+    renderPack(data);
+  } catch (e) {
+    showMessage('errorAlert', '通信エラー: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-magic"></i> 生成する';
+  }
+}
+
+function renderPack(data) {
+  document.getElementById('emptyState').classList.add('d-none');
+  document.getElementById('resultArea').classList.remove('d-none');
+  document.getElementById('postText').value = data.post_text || '';
+  document.getElementById('shortText').value = data.short_text || '';
+  document.getElementById('imagePrompt').value = data.image_prompt || '';
+  document.getElementById('videoPrompt').value = data.video_prompt || '';
+
+  const variants = [
+    data.hashtags || '',
+    ...(data.caption_variants || []).map((v, i) => `別案${i + 1}: ${v}`),
+  ].filter(Boolean).join('\n\n');
+  document.getElementById('variantsText').value = variants;
+
+  if (data.ai_note) showMessage('warningAlert', data.ai_note + (data.warning ? ` / ${data.warning}` : ''));
+  renderCreator(data.creator || {});
+  renderSampleMedia(data.sample_media || []);
+}
+
+function renderCreator(creator) {
+  document.getElementById('creatorCard').classList.remove('d-none');
+  document.getElementById('creatorName').textContent = creator.name || '注目クリエイター';
+  document.getElementById('creatorMeta').textContent = creator.username ? `@${creator.username}` : creator.url || '';
+  document.getElementById('creatorBio').textContent = creator.bio || '';
+  const img = document.getElementById('creatorImage');
+  const ph = document.getElementById('creatorImagePlaceholder');
+  if (creator.profile_image) {
+    img.src = creator.profile_image;
+    img.classList.remove('d-none');
+    ph.classList.add('d-none');
+  } else {
+    img.classList.add('d-none');
+    ph.classList.remove('d-none');
+  }
+}
+
+function renderSampleMedia(items) {
+  const panel = document.getElementById('sampleMediaPanel');
+  const grid = document.getElementById('sampleMediaGrid');
+  if (!items.length) {
+    panel.classList.add('d-none');
+    grid.innerHTML = '';
+    return;
+  }
+  panel.classList.remove('d-none');
+  grid.innerHTML = items.map((item) => `
+    <div class="sample-media">
+      <img src="${escapeAttr(item.url)}" alt="" loading="lazy">
+      <div class="sample-media-title">${escapeHtml(item.title || 'サンプル画像')}</div>
+      <button class="btn btn-sm btn-outline-secondary w-100" data-media-url="${escapeAttr(item.url)}" onclick="copyText(this.dataset.mediaUrl)">
+        <i class="bi bi-copy"></i> URLコピー
+      </button>
+    </div>
+  `).join('');
+}
+
+function copyFrom(id) {
+  copyText(document.getElementById(id).value);
+}
+
+function showMessage(id, message) {
+  const el = document.getElementById(id);
+  el.textContent = message;
+  el.classList.remove('d-none');
+}
+
+function hideMessage(id) {
+  document.getElementById(id).classList.add('d-none');
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function escapeAttr(text) {
+  return escapeHtml(text).replace(/`/g, '&#96;');
+}
+</script>
+{% endblock %}

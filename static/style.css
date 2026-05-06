@@ -131,7 +131,126 @@ body {
   border-radius: 6px;
 }
 
+.generator-shell {
+  max-width: 1360px;
+  margin: 0 auto;
+}
+
+.generator-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 18px 20px;
+  background: #fff;
+  border-left: 5px solid #14b8a6;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.control-card {
+  position: sticky;
+  top: 74px;
+}
+
+.empty-state {
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #6b7280;
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+}
+
+.empty-state i {
+  font-size: 2.4rem;
+  color: #14b8a6;
+}
+
+.copy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.copy-panel {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.copy-panel-head {
+  min-height: 48px;
+  padding: 8px 12px;
+  border-bottom: 2px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 700;
+}
+
+.copy-textarea {
+  border: 0;
+  border-radius: 0;
+  resize: vertical;
+  line-height: 1.6;
+  font-size: 0.88rem;
+}
+
+.creator-avatar,
+.creator-avatar-placeholder {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  flex: 0 0 58px;
+}
+
+.creator-avatar {
+  object-fit: cover;
+}
+
+.creator-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ccfbf1;
+  color: #0f766e;
+  font-size: 1.5rem;
+}
+
+.sample-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.sample-media {
+  border: 1px solid #e5e7eb;
+  padding: 8px;
+}
+
+.sample-media img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: #f3f4f6;
+}
+
+.sample-media-title {
+  min-height: 38px;
+  margin: 6px 0;
+  font-size: 0.78rem;
+  color: #4b5563;
+  overflow: hidden;
+}
+
 @media (max-width: 768px) {
   .stat-value { font-size: 1.4rem; }
   .table { font-size: 0.8rem; }
+  .control-card { position: static; }
+  .copy-grid { grid-template-columns: 1fr; }
+  .generator-hero { align-items: flex-start; }
 }
