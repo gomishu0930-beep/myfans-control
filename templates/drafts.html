@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}投稿下書き管理 - MyFans Control Tower{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-file-earmark-text"></i> 投稿下書き管理</h4>
+  <div class="d-flex gap-2">
+    <a href="/drafts/export/schedule" class="btn btn-sm btn-outline-info"><i class="bi bi-calendar-check"></i> スケジュールCSV</a>
+    <a href="/drafts/export/csv" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i> CSV出力</a>
+    <div class="dropdown">
+      <button class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="bi bi-plus-lg"></i> 新規下書き
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="/drafts/new">空白から作成</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="/drafts/new?template_type=introduction"><i class="bi bi-person"></i> クリエイター紹介</a></li>
+        <li><a class="dropdown-item" href="/drafts/new?template_type=ranking"><i class="bi bi-list-ol"></i> ランキング</a></li>
+        <li><a class="dropdown-item" href="/drafts/new?template_type=campaign"><i class="bi bi-megaphone"></i> キャンペーン</a></li>
+        <li><a class="dropdown-item" href="/drafts/new?template_type=knowhow"><i class="bi bi-lightbulb"></i> ノウハウ</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- フィルター -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="d-flex gap-2 align-items-end flex-wrap">
+      <select name="status" class="form-select form-select-sm" style="max-width:160px">
+        <option value="">全ステータス</option>
+        {% for s in ['draft', 'needs_review', 'approved', 'posted', 'rejected'] %}
+        <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      <select name="post_type" class="form-select form-select-sm" style="max-width:160px">
+        <option value="">全投稿タイプ</option>
+        {% for t in ['introduction', 'ranking', 'campaign', 'knowhow'] %}
+        <option value="{{ t }}" {% if post_type_filter == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-primary">絞り込み</button>
+      <a href="/drafts" class="btn btn-sm btn-outline-secondary">リセット</a>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th style="width:22%">投稿文</th>
+            <th>クリエイター</th>
+            <th>タイプ</th>
+            <th class="text-center">ステータス</th>
+            <th class="text-center">スコア</th>
+            <th>予定日時</th>
+            <th class="text-center">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for draft in drafts %}
+          {% set creator = creator_map.get(draft.creator_id) %}
+          <tr class="{% if draft.status == 'rejected' or (draft.compliance_score and draft.compliance_score < 60) %}row-danger{% elif draft.status == 'approved' %}row-approved{% elif draft.status == 'posted' %}{% endif %}">
+            <td>
+              <div class="draft-body-preview">{{ draft.body }}</div>
+              <button class="copy-btn mt-1" onclick="copyText({{ draft.body | tojson }})">
+                <i class="bi bi-copy"></i> コピー
+              </button>
+            </td>
+            <td>
+              {% if creator %}
+              <span class="fw-bold">{{ creator.display_name }}</span>
+              {% if creator.adult_flag %}<span class="badge-adult">18+</span>{% endif %}
+              {% else %}-{% endif %}
+            </td>
+            <td><span class="badge bg-secondary">{{ draft.post_type }}</span></td>
+            <td class="text-center">
+              <span class="badge status-{{ draft.status }}">{{ draft.status }}</span>
+              {% if draft.manual_review_required %}
+              <br><span class="badge bg-danger mt-1">要審査</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% set score = draft.compliance_score or 0 %}
+              <span class="{% if score >= 80 %}score-high{% elif score >= 60 %}score-mid{% else %}score-low{% endif %}">
+                {{ "%.0f"|format(score) }}
+              </span>
+            </td>
+            <td class="small">{{ draft.scheduled_at.strftime('%m/%d %H:%M') if draft.scheduled_at else '-' }}</td>
+            <td>
+              <div class="d-flex gap-1 flex-wrap justify-content-center">
+                <a href="/drafts/{{ draft.id }}/edit" class="btn btn-xs btn-outline-primary btn-sm py-0 px-2">編集</a>
+                {% if draft.status in ['draft', 'needs_review'] %}
+                <form method="post" action="/drafts/{{ draft.id }}/approve">
+                  <button type="submit" class="btn btn-xs btn-outline-success btn-sm py-0 px-2"
+                    {% if draft.compliance_score and draft.compliance_score < 60 %}disabled title="コンプライアンスエラー"{% endif %}>承認</button>
+                </form>
+                <form method="post" action="/drafts/{{ draft.id }}/reject">
+                  <button type="submit" class="btn btn-xs btn-outline-danger btn-sm py-0 px-2">否認</button>
+                </form>
+                {% endif %}
+                {% if draft.status == 'approved' %}
+                <button class="btn btn-xs btn-outline-info btn-sm py-0 px-2"
+                  data-bs-toggle="modal" data-bs-target="#postedModal{{ draft.id }}">投稿済</button>
+                {% endif %}
+                <form method="post" action="/drafts/{{ draft.id }}/delete" onsubmit="return confirm('削除しますか？')">
+                  <button type="submit" class="btn btn-xs btn-outline-danger btn-sm py-0 px-2">削除</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center text-muted py-4">下書きがありません。<a href="/drafts/new">新規作成</a>してください。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% for draft in drafts %}
+{% if draft.status == 'approved' %}
+<div class="modal fade" id="postedModal{{ draft.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">投稿完了を記録</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="post" action="/drafts/{{ draft.id }}/mark-posted">
+        <div class="modal-body">
+          <label class="form-label">投稿URL（任意）</label>
+          <input type="url" name="posted_url" class="form-control" placeholder="https://x.com/...">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+          <button type="submit" class="btn btn-success">投稿済みにする</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}

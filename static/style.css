@@ -1,0 +1,137 @@
+:root {
+  --primary: #7c3aed;
+  --primary-dark: #5b21b6;
+  --danger-bg: #fef2f2;
+  --warning-bg: #fffbeb;
+  --success-bg: #f0fdf4;
+}
+
+body {
+  background-color: #f8f9fa;
+  font-size: 0.92rem;
+}
+
+.navbar-brand {
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+}
+
+.card {
+  border: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.card-header {
+  font-weight: 600;
+  background: #fff;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.stat-card {
+  border-left: 4px solid var(--primary);
+  transition: transform 0.1s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.stat-label {
+  font-size: 0.78rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #495057;
+  background: #f8f9fa;
+}
+
+.status-draft { background: #e9ecef; color: #495057; }
+.status-needs_review { background: #fff3cd; color: #856404; }
+.status-approved { background: #d1fae5; color: #065f46; }
+.status-posted { background: #dbeafe; color: #1e40af; }
+.status-rejected { background: #fee2e2; color: #991b1b; }
+
+.compliance-ok { color: #059669; }
+.compliance-warning { color: #d97706; }
+.compliance-error { color: #dc2626; }
+
+.row-danger { background-color: #fff5f5 !important; }
+.row-approved { background-color: #f0fdf4 !important; }
+.row-warning { background-color: #fffbeb !important; }
+
+.score-high { color: #059669; font-weight: 700; }
+.score-mid { color: #d97706; font-weight: 700; }
+.score-low { color: #dc2626; font-weight: 700; }
+
+.copy-btn {
+  cursor: pointer;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 2px 8px;
+  background: #f8f9fa;
+  transition: background 0.1s;
+}
+.copy-btn:hover { background: #e9ecef; }
+
+.draft-body-preview {
+  max-height: 80px;
+  overflow: hidden;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: #374151;
+}
+
+.calendar-cell {
+  min-height: 90px;
+  vertical-align: top;
+  padding: 4px !important;
+}
+
+.calendar-cell.today {
+  background: #ede9fe !important;
+}
+
+.calendar-slot {
+  font-size: 0.7rem;
+  border-left: 3px solid #7c3aed;
+  padding-left: 4px;
+  margin-bottom: 2px;
+  background: #f5f3ff;
+  border-radius: 2px;
+}
+
+.goal-progress .progress {
+  height: 10px;
+  border-radius: 5px;
+}
+
+.badge-adult {
+  background: #dc2626;
+  color: white;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.nav-link.active {
+  background: rgba(255,255,255,0.15);
+  border-radius: 6px;
+}
+
+@media (max-width: 768px) {
+  .stat-value { font-size: 1.4rem; }
+  .table { font-size: 0.8rem; }
+}

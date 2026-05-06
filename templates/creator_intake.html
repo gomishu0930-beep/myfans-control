@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}クリエイター申請フォーム{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <h2><i class="bi bi-person-plus"></i> クリエイター申請フォーム</h2>
+    <p class="text-muted">クリエイターご本人が素材利用許諾・アフィリエイト参加のために入力するフォームです。</p>
+
+    {% if success %}
+    <div class="alert alert-success">
+      <i class="bi bi-check-circle"></i> 申請を受け付けました。担当者の審査後にご連絡します。
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    {% if not success %}
+    <div class="card">
+      <div class="card-body">
+        <form method="post" action="/creator-intake">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">クリエイター名 <span class="text-danger">*</span></label>
+              <input type="text" name="creator_name" class="form-control" required placeholder="表示名・活動名">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">MyFans URL <span class="text-danger">*</span></label>
+              <input type="url" name="myfans_url" class="form-control" required placeholder="https://myfans.jp/あなたのID">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">X（旧Twitter）URL</label>
+              <input type="url" name="x_url" class="form-control" placeholder="https://x.com/あなたのID">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">カテゴリ・ジャンル</label>
+              <input type="text" name="category" class="form-control" placeholder="コスプレ、グラビア、VTuber など">
+            </div>
+            <div class="col-12">
+              <label class="form-label">おすすめ投稿URL（紹介に使いたい投稿）</label>
+              <input type="url" name="recommended_post_url" class="form-control" placeholder="https://myfans.jp/あなたのID/posts/xxx">
+            </div>
+            <div class="col-12">
+              <label class="form-label">希望する紹介文・説明文</label>
+              <textarea name="desired_description" class="form-control" rows="3"
+                placeholder="アフィリエイト投稿で使ってほしい紹介文があればご記入ください"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">許可する素材種別</label>
+              <input type="text" name="allowed_media_type" class="form-control" placeholder="画像のみ、動画可 など">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">許可する掲載プラットフォーム</label>
+              <input type="text" name="allowed_platforms" class="form-control" placeholder="X, note, ブログ など">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">素材使用期限</label>
+              <input type="date" name="usage_expiry_date" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">NGワード・禁止事項</label>
+              <input type="text" name="ng_words" class="form-control" placeholder="掲載NGのワード、競合クリエイター名など">
+            </div>
+            <div class="col-12">
+              <label class="form-label">その他メモ・ご要望</label>
+              <textarea name="memo" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="alert alert-warning mt-4 small">
+            <i class="bi bi-exclamation-triangle"></i>
+            本フォームは18歳以上のクリエイター専用です。送信後、担当者が内容を審査します。
+            承認されるまで投稿には使用されません。
+          </div>
+          <button type="submit" class="btn btn-primary mt-2">
+            <i class="bi bi-send"></i> 申請する
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

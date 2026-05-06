@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}投稿カレンダー - MyFans Control Tower{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-calendar3"></i> 投稿カレンダー</h4>
+  <div class="d-flex gap-2">
+    <a href="/calendar?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-chevron-left"></i>
+    </a>
+    <span class="btn btn-sm btn-light fw-bold">{{ year }}年{{ month }}月</span>
+    <a href="/calendar?year={{ next_year }}&month={{ next_month }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-chevron-right"></i>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-body p-2">
+        <div class="table-responsive">
+          <table class="table table-bordered mb-0" style="table-layout:fixed">
+            <thead>
+              <tr>
+                {% for day in ['日', '月', '火', '水', '木', '金', '土'] %}
+                <th class="text-center py-1 small {% if loop.index == 1 %}text-danger{% elif loop.index == 7 %}text-primary{% endif %}">{{ day }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for week in cal %}
+              <tr>
+                {% for day in week %}
+                {% if day == 0 %}
+                <td class="calendar-cell bg-light"></td>
+                {% else %}
+                {% set d = (year, month, day)|join('-')|replace('-', '-') %}
+                {% set from_date = namespace(d=none) %}
+                {% for k, v in calendar_data.items() %}
+                  {% if k.day == day %}{% set from_date.d = v %}{% endif %}
+                {% endfor %}
+                <td class="calendar-cell {% if today.day == day and today.month == month and today.year == year %}today{% endif %}">
+                  <div class="text-end small fw-bold mb-1">{{ day }}</div>
+                  {% if from_date.d %}
+                    {% for time_slot, slot_drafts in from_date.d.times.items() %}
+                      {% for draft in slot_drafts %}
+                      <div class="calendar-slot">
+                        <span class="text-muted">{{ time_slot }}</span>
+                        <span class="d-block text-truncate" style="font-size:0.65rem">
+                          {{ creator_map.get(draft.creator_id).display_name[:8] if creator_map.get(draft.creator_id) else '-' }}
+                        </span>
+                      </div>
+                      {% endfor %}
+                    {% endfor %}
+                  {% endif %}
+                </td>
+                {% endif %}
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-clock"></i> 未割当の承認済み投稿</div>
+      <div class="card-body p-0">
+        {% for draft in unscheduled %}
+        <div class="border-bottom p-2">
+          <div class="small fw-bold text-truncate">{{ draft.title or draft.body[:30] }}...</div>
+          <div class="small text-muted">{{ creator_map.get(draft.creator_id).display_name if creator_map.get(draft.creator_id) else '-' }}</div>
+          <form method="post" action="/calendar/assign" class="mt-1 d-flex gap-1">
+            <input type="hidden" name="draft_id" value="{{ draft.id }}">
+            <input type="datetime-local" name="scheduled_at" class="form-control form-control-sm" style="font-size:0.7rem">
+            <button type="submit" class="btn btn-xs btn-primary btn-sm py-0 px-1">設定</button>
+          </form>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-3 small">未割当の投稿なし</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header small"><i class="bi bi-clock-history"></i> デフォルト投稿時間</div>
+      <div class="card-body py-2">
+        {% for t in default_times %}
+        <span class="badge bg-secondary me-1">{{ t }}</span>
+        {% endfor %}
+        <a href="/settings" class="d-block mt-2 small text-decoration-none">変更 →</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

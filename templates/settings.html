@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}設定 - MyFans Control Tower{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-gear"></i> 設定</h4>
+</div>
+
+<form method="post" action="/settings">
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">アカウント設定</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Xアカウント名</label>
+            <div class="input-group">
+              <span class="input-group-text">@</span>
+              <input type="text" name="x_account_name" class="form-control" value="{{ settings.x_account_name if settings else '' }}" placeholder="your_handle">
+            </div>
+            <div class="form-text">環境変数 X_ACCOUNT_NAME からも設定可</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">外部LP URL</label>
+            <input type="url" name="external_lp_url" class="form-control" value="{{ settings.external_lp_url if settings else '' }}" placeholder="https://...">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">デフォルト投稿時間（カンマ区切り）</label>
+            <input type="text" name="default_post_times" class="form-control" value="{{ settings.default_post_times if settings else '12:00,19:00,21:00,23:00' }}" placeholder="12:00,19:00,21:00,23:00">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">デフォルト文言</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">デフォルトPR表記</label>
+            <input type="text" name="default_pr_text" class="form-control" value="{{ settings.default_pr_text if settings else '#PR' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">デフォルト年齢確認文言</label>
+            <textarea name="default_age_warning" class="form-control" rows="2">{{ settings.default_age_warning if settings else '※成人向けコンテンツです。18歳未満の方はご覧いただけません。' }}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">目標・KPI設定</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">目標月間報酬 (¥)</label>
+            <input type="number" name="target_monthly_commission" class="form-control" step="1000" value="{{ settings.target_monthly_commission if settings else 200000 }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">推定AOV (¥) — 1件あたり平均注文額</label>
+            <input type="number" name="estimated_aov" class="form-control" step="100" value="{{ settings.estimated_aov if settings else 5000 }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">推定CVR (%)</label>
+            <input type="number" name="estimated_cvr" class="form-control" step="0.1" min="0" max="100" value="{{ settings.estimated_cvr if settings else 1.0 }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">デフォルト報酬率 (%)</label>
+            <input type="number" name="default_commission_rate" class="form-control" step="0.1" min="0" max="100" value="{{ settings.default_commission_rate if settings else 15.0 }}">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-key"></i> API設定（Replit Secrets推奨）</div>
+        <div class="card-body">
+          <div class="alert alert-info small">
+            <i class="bi bi-info-circle"></i>
+            APIキー・トークンはコードに直書きせず、<strong>Replit Secrets</strong>（環境変数）で管理してください。<br>
+            設定後は自動的に読み込まれます。
+          </div>
+          <table class="table table-sm small">
+            <thead><tr><th>変数名</th><th>用途</th></tr></thead>
+            <tbody>
+              <tr><td><code>X_API_KEY</code></td><td>X API Key</td></tr>
+              <tr><td><code>X_API_SECRET</code></td><td>X API Secret</td></tr>
+              <tr><td><code>X_ACCESS_TOKEN</code></td><td>X Access Token</td></tr>
+              <tr><td><code>X_ACCESS_SECRET</code></td><td>X Access Token Secret</td></tr>
+              <tr><td><code>DATABASE_URL</code></td><td>DB接続URL（省略時はSQLite）</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> 設定を保存</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

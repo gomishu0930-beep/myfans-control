@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}リンクキュー{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2><i class="bi bi-list-check"></i> アフィリエイトリンクキュー</h2>
+    <p class="text-muted mb-0">MyFans管理画面でリンクを発行後、こちらに貼り戻してください。</p>
+  </div>
+  <div class="d-flex gap-2">
+    <span class="badge bg-warning text-dark fs-6">待機中: {{ pending_count }}</span>
+    <span class="badge bg-success fs-6">発行済: {{ generated_count }}</span>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- 新規追加フォーム -->
+  <div class="col-md-5">
+    <div class="card h-100">
+      <div class="card-header bg-primary text-white"><i class="bi bi-plus-circle"></i> URLをキューへ追加</div>
+      <div class="card-body">
+        <form method="post" action="/link-queue/add">
+          <div class="mb-2">
+            <label class="form-label small fw-bold">元URL <span class="text-danger">*</span></label>
+            <input type="url" name="original_url" class="form-control form-control-sm" required
+              placeholder="https://myfans.jp/creator123">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small fw-bold">リンク種別</label>
+              <select name="link_type" class="form-select form-select-sm">
+                {% for t in link_types %}
+                <option value="{{ t }}">{{ t }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-bold">報酬率（%）</label>
+              <input type="number" name="commission_rate" class="form-control form-control-sm"
+                value="10.0" step="0.1" min="0" max="100">
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">候補者（任意）</label>
+            <select name="creator_candidate_id" class="form-select form-select-sm">
+              <option value="">-- 選択 --</option>
+              {% for c in candidates %}
+              <option value="{{ c.id }}">{{ c.display_name or c.url[:40] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">メモ</label>
+            <input type="text" name="memo" class="form-control form-control-sm">
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-plus"></i> キューへ追加
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- フィルター -->
+  <div class="col-md-7">
+    <div class="card h-100">
+      <div class="card-header">使い方</div>
+      <div class="card-body small">
+        <ol class="mb-0">
+          <li>URL一括投入またはCSV取込で候補者を登録</li>
+          <li>承認した候補者の元URLをここへ追加</li>
+          <li>「元URLをコピー」してMyFans管理画面でリンク発行</li>
+          <li>発行されたアフィリエイトURLを「リンクを貼り戻す」で登録</li>
+          <li>ステータスを「有効化」してリンク管理画面へ</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- フィルタータブ -->
+<div class="d-flex gap-2 mb-3">
+  <a href="/link-queue" class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-outline-secondary{% endif %}">全件</a>
+  {% for s, label, color in [('pending','待機中','warning'),('generated','発行済（未有効化）','info'),('active','有効','success'),('inactive','無効','secondary')] %}
+  <a href="/link-queue?status={{ s }}"
+     class="btn btn-sm {% if status_filter == s %}btn-{{ color }}{% else %}btn-outline-{{ color }}{% endif %}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th>元URL</th><th>種別</th><th>報酬率</th>
+          <th>アフィリエイトURL</th><th>ステータス</th><th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-truncate d-block small" style="max-width:200px;">{{ item.original_url }}</span>
+              <button class="btn btn-xs btn-outline-secondary"
+                      onclick="copyText('{{ item.original_url }}')" title="元URLをコピー">
+                <i class="bi bi-copy"></i>
+              </button>
+            </div>
+            {% if item.memo %}<div class="text-muted small">{{ item.memo }}</div>{% endif %}
+          </td>
+          <td><span class="badge bg-secondary">{{ item.link_type }}</span></td>
+          <td>{{ item.commission_rate }}%</td>
+          <td>
+            {% if item.affiliate_url %}
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-truncate d-block small text-success" style="max-width:200px;">{{ item.affiliate_url }}</span>
+              <button class="btn btn-xs btn-outline-success"
+                      onclick="copyText('{{ item.affiliate_url }}')" title="コピー">
+                <i class="bi bi-copy"></i>
+              </button>
+            </div>
+            {% else %}
+            <!-- アフィリエイトURL貼り戻しフォーム -->
+            <form method="post" action="/link-queue/{{ item.id }}/set-affiliate" class="d-flex gap-1">
+              <input type="url" name="affiliate_url" class="form-control form-control-sm"
+                     placeholder="発行されたURLを貼り付け" style="min-width:200px;" required>
+              <button class="btn btn-sm btn-success" type="submit">
+                <i class="bi bi-check"></i>
+              </button>
+            </form>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.status == 'pending' %}<span class="badge bg-warning text-dark">待機中</span>
+            {% elif item.status == 'generated' %}<span class="badge bg-info text-dark">発行済</span>
+            {% elif item.status == 'active' %}<span class="badge bg-success">有効</span>
+            {% elif item.status == 'inactive' %}<span class="badge bg-secondary">無効</span>
+            {% else %}<span class="badge bg-secondary">{{ item.status }}</span>{% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              {% if item.status == 'generated' %}
+              <form method="post" action="/link-queue/{{ item.id }}/activate">
+                <button class="btn btn-xs btn-success" title="有効化">✓</button>
+              </form>
+              {% elif item.status == 'active' %}
+              <form method="post" action="/link-queue/{{ item.id }}/deactivate">
+                <button class="btn btn-xs btn-outline-secondary" title="無効化">⏸</button>
+              </form>
+              {% endif %}
+              <form method="post" action="/link-queue/{{ item.id }}/delete"
+                    onsubmit="return confirm('削除しますか？')">
+                <button class="btn btn-xs btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-4">キューなし</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>.btn-xs { padding: 0.1rem 0.4rem; font-size: 0.75rem; }</style>
+{% endblock %}

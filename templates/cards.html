@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}カード生成{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2><i class="bi bi-card-image"></i> 投稿用カード自動生成</h2>
+  <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#genForm">
+    <i class="bi bi-plus"></i> 新規カード生成
+  </button>
+</div>
+
+<div class="collapse {% if show_form %}show{% endif %} mb-4" id="genForm">
+  <div class="card border-primary">
+    <div class="card-header bg-primary text-white">カード生成設定</div>
+    <div class="card-body">
+      <form method="post" action="/cards/generate">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-bold">クリエイター名 <span class="text-danger">*</span></label>
+            <input type="text" name="creator_name" class="form-control" required
+                   placeholder="例：クリエイターA">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">ジャンル <span class="text-danger">*</span></label>
+            <input type="text" name="genre" class="form-control" required
+                   placeholder="コスプレ・グラビアなど">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">背景色</label>
+            <input type="color" name="background_color" class="form-control form-control-color"
+                   value="#1a1a2e" title="背景色を選択">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-bold">キャッチコピー <span class="text-danger">*</span></label>
+            <input type="text" name="catchphrase" class="form-control" required
+                   placeholder="例：今だけ限定！フォロー限定の特別コンテンツ公開中">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-bold">LP URL（アフィリエイトリンクなど）</label>
+            <input type="text" name="lp_url" class="form-control"
+                   placeholder="https://myfans.jp/creator123?ref=xxx">
+          </div>
+        </div>
+        <div class="alert alert-info mt-3 small">
+          <i class="bi bi-info-circle"></i>
+          生成される3サイズ：<strong>1200×675（ワイド）</strong>、<strong>1080×1080（スクエア）</strong>、<strong>1080×1920（ストーリー）</strong><br>
+          全カードに <strong>PR表記</strong> と <strong>18歳未満閲覧禁止</strong> が自動挿入されます。
+        </div>
+        <button type="submit" class="btn btn-success">
+          <i class="bi bi-image"></i> 3サイズ一括生成
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if errors %}
+<div class="alert alert-warning">
+  {% for e in errors %}<div>{{ e }}</div>{% endfor %}
+</div>
+{% endif %}
+
+{% if generated %}
+<div class="alert alert-success">
+  <i class="bi bi-check-circle"></i> カードを生成しました！ダウンロードして投稿に使用してください。
+  <div class="mt-2 d-flex gap-2 flex-wrap">
+    {% if generated.file_path_wide %}
+    <a href="{{ generated.file_path_wide }}" download class="btn btn-sm btn-outline-success">
+      <i class="bi bi-download"></i> ワイド(1200×675)
+    </a>
+    {% endif %}
+    {% if generated.file_path_square %}
+    <a href="{{ generated.file_path_square }}" download class="btn btn-sm btn-outline-success">
+      <i class="bi bi-download"></i> スクエア(1080×1080)
+    </a>
+    {% endif %}
+    {% if generated.file_path_story %}
+    <a href="{{ generated.file_path_story }}" download class="btn btn-sm btn-outline-success">
+      <i class="bi bi-download"></i> ストーリー(1080×1920)
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- 生成済みカード一覧 -->
+{% if cards %}
+<h5 class="mt-2 mb-3">生成済みカード</h5>
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+  {% for card in cards %}
+  <div class="col">
+    <div class="card h-100">
+      {% if card.file_path_wide %}
+      <img src="{{ card.file_path_wide }}" class="card-img-top" style="height:160px;object-fit:cover;"
+           onerror="this.style.display='none'">
+      {% endif %}
+      <div class="card-body p-2">
+        <div class="fw-bold">{{ card.creator_name }}</div>
+        <div class="small text-muted">{{ card.genre }} ／ {{ card.catchphrase[:30] }}{% if card.catchphrase|length > 30 %}...{% endif %}</div>
+        <div class="small text-muted">{{ card.created_at.strftime('%Y/%m/%d %H:%M') if card.created_at else '' }}</div>
+      </div>
+      <div class="card-footer p-2 d-flex gap-1 flex-wrap">
+        {% if card.file_path_wide %}
+        <a href="{{ card.file_path_wide }}" download class="btn btn-xs btn-outline-primary">ワイド</a>
+        {% endif %}
+        {% if card.file_path_square %}
+        <a href="{{ card.file_path_square }}" download class="btn btn-xs btn-outline-primary">スクエア</a>
+        {% endif %}
+        {% if card.file_path_story %}
+        <a href="{{ card.file_path_story }}" download class="btn btn-xs btn-outline-primary">ストーリー</a>
+        {% endif %}
+        <form method="post" action="/cards/{{ card.id }}/delete"
+              onsubmit="return confirm('削除しますか？')" class="ms-auto">
+          <button class="btn btn-xs btn-outline-danger"><i class="bi bi-trash"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-card-image" style="font-size:3rem;"></i>
+  <p class="mt-2">まだカードがありません。上のフォームで生成してください。</p>
+</div>
+{% endif %}
+
+<style>.btn-xs { padding: 0.1rem 0.4rem; font-size: 0.75rem; }</style>
+{% endblock %}

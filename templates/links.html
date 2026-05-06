@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}アフィリエイトリンク管理 - MyFans Control Tower{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-link-45deg"></i> アフィリエイトリンク管理</h4>
+  <div class="d-flex gap-2">
+    <a href="/links/export/csv" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i> CSV出力</a>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newLinkModal"><i class="bi bi-plus-lg"></i> 新規登録</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>クリエイター</th>
+            <th>リンクタイプ</th>
+            <th>アフィリエイトURL</th>
+            <th class="text-end">報酬率</th>
+            <th class="text-end">Cookie</th>
+            <th>承認メディア</th>
+            <th class="text-center">有効</th>
+            <th class="text-center">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for link in links %}
+          <tr class="{% if not link.active %}text-muted{% endif %}">
+            <td>
+              {% for c in creators if c.id == link.creator_id %}
+                <span class="fw-bold">{{ c.display_name }}</span>
+              {% endfor %}
+            </td>
+            <td><span class="badge bg-info text-dark">{{ link.link_type }}</span></td>
+            <td>
+              <div class="d-flex align-items-center gap-1">
+                <span class="text-truncate" style="max-width:180px;" title="{{ link.affiliate_url }}">{{ link.affiliate_url }}</span>
+                <button class="copy-btn" onclick="copyText('{{ link.affiliate_url }}')"><i class="bi bi-copy"></i></button>
+              </div>
+            </td>
+            <td class="text-end fw-bold">{{ "%.1f"|format(link.estimated_rate) }}%</td>
+            <td class="text-end">{{ link.cookie_hours }}h</td>
+            <td class="small">{{ link.approved_media_name or '-' }}</td>
+            <td class="text-center">
+              <form method="post" action="/links/{{ link.id }}/toggle" class="d-inline">
+                <button type="submit" class="btn btn-xs btn-sm py-0 px-2 {% if link.active %}btn-success{% else %}btn-secondary{% endif %}">
+                  {% if link.active %}<i class="bi bi-check-circle"></i> 有効{% else %}<i class="bi bi-x-circle"></i> 無効{% endif %}
+                </button>
+              </form>
+            </td>
+            <td class="text-center">
+              <button class="btn btn-xs btn-outline-primary btn-sm py-0 px-2"
+                data-bs-toggle="modal" data-bs-target="#editLinkModal{{ link.id }}">編集</button>
+              <form method="post" action="/links/{{ link.id }}/delete" class="d-inline" onsubmit="return confirm('削除しますか？')">
+                <button type="submit" class="btn btn-xs btn-outline-danger btn-sm py-0 px-2">削除</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center text-muted py-4">リンクが登録されていません。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 新規登録モーダル -->
+<div class="modal fade" id="newLinkModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">アフィリエイトリンク新規登録</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="/links/new">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">クリエイター <span class="text-danger">*</span></label>
+              <select name="creator_id" class="form-select" required>
+                {% for c in creators %}
+                <option value="{{ c.id }}">{{ c.display_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">リンクタイプ</label>
+              <select name="link_type" class="form-select">
+                <option value="creator_link">クリエイターリンク</option>
+                <option value="post_link">投稿リンク</option>
+                <option value="top_link">TOPリンク</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">元URL <span class="text-danger">*</span></label>
+              <input type="url" name="original_url" class="form-control" required placeholder="https://myfans.jp/creator">
+            </div>
+            <div class="col-12">
+              <label class="form-label">アフィリエイトURL <span class="text-danger">*</span></label>
+              <input type="url" name="affiliate_url" class="form-control" required placeholder="https://myfans.jp/creator?ref=xxx">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">推定報酬率 (%)</label>
+              <input type="number" name="estimated_rate" class="form-control" step="0.1" min="0" max="100" value="10.0">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Cookie有効時間 (h)</label>
+              <input type="number" name="cookie_hours" class="form-control" value="720">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">承認メディア名</label>
+              <input type="text" name="approved_media_name" class="form-control" placeholder="X @handle">
+            </div>
+            <div class="col-12">
+              <label class="form-label">メモ</label>
+              <textarea name="memo" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="active" value="true">
+                <label class="form-check-label">有効にする</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% for link in links %}
+<div class="modal fade" id="editLinkModal{{ link.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">リンク編集</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="/links/{{ link.id }}/edit">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">クリエイター</label>
+              <select name="creator_id" class="form-select">
+                {% for c in creators %}
+                <option value="{{ c.id }}" {% if c.id == link.creator_id %}selected{% endif %}>{{ c.display_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">リンクタイプ</label>
+              <select name="link_type" class="form-select">
+                {% for t in ['creator_link', 'post_link', 'top_link'] %}
+                <option value="{{ t }}" {% if link.link_type == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">元URL</label>
+              <input type="url" name="original_url" class="form-control" value="{{ link.original_url }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">アフィリエイトURL</label>
+              <input type="url" name="affiliate_url" class="form-control" value="{{ link.affiliate_url }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">推定報酬率 (%)</label>
+              <input type="number" name="estimated_rate" class="form-control" step="0.1" value="{{ link.estimated_rate }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Cookie有効時間 (h)</label>
+              <input type="number" name="cookie_hours" class="form-control" value="{{ link.cookie_hours }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">承認メディア名</label>
+              <input type="text" name="approved_media_name" class="form-control" value="{{ link.approved_media_name or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">メモ</label>
+              <textarea name="memo" class="form-control" rows="2">{{ link.memo or '' }}</textarea>
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="active" value="true" {% if link.active %}checked{% endif %}>
+                <label class="form-check-label">有効</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

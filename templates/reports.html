@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}成果レポート - MyFans Control Tower{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-bar-chart"></i> 成果レポート</h4>
+  <div class="d-flex gap-2">
+    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal">
+      <i class="bi bi-upload"></i> CSVインポート
+    </button>
+    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#newReportModal">
+      <i class="bi bi-plus-lg"></i> 手動入力
+    </button>
+  </div>
+</div>
+
+<!-- 集計カード -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card"><div class="card-body">
+      <div class="stat-label">総クリック</div>
+      <div class="stat-value">{{ "{:,}".format(total_clicks) }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card"><div class="card-body">
+      <div class="stat-label">CV件数</div>
+      <div class="stat-value">{{ "{:,}".format(total_conversions) }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card"><div class="card-body">
+      <div class="stat-label">流通総額</div>
+      <div class="stat-value">¥{{ "{:,.0f}".format(total_gross_sales) }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card" style="border-color:#059669"><div class="card-body">
+      <div class="stat-label">報酬合計</div>
+      <div class="stat-value" style="color:#059669">¥{{ "{:,.0f}".format(total_commission) }}</div>
+    </div></div>
+  </div>
+</div>
+
+<!-- クリエイター別集計 -->
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-people"></i> クリエイター別集計</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead><tr><th>クリエイター</th><th class="text-end">クリック</th><th class="text-end">CV</th><th class="text-end">売上</th><th class="text-end">報酬</th></tr></thead>
+        <tbody>
+          {% for name, clicks, conversions, sales, commission in by_creator %}
+          <tr>
+            <td>{{ name or '不明' }}</td>
+            <td class="text-end">{{ "{:,}".format(clicks or 0) }}</td>
+            <td class="text-end">{{ "{:,}".format(conversions or 0) }}</td>
+            <td class="text-end">¥{{ "{:,.0f}".format(sales or 0) }}</td>
+            <td class="text-end text-success fw-bold">¥{{ "{:,.0f}".format(commission or 0) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-3">データなし</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- レポート一覧 -->
+<div class="card">
+  <div class="card-header"><i class="bi bi-list"></i> レポート一覧</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead><tr><th>日付</th><th>クリエイター</th><th class="text-end">クリック</th><th class="text-end">CV</th><th class="text-end">CVR</th><th class="text-end">売上</th><th class="text-end">報酬</th><th>メモ</th><th></th></tr></thead>
+        <tbody>
+          {% for r in reports %}
+          <tr>
+            <td class="text-nowrap">{{ r.date }}</td>
+            <td>
+              {% for c in creators if c.id == r.creator_id %}{{ c.display_name }}{% endfor %}
+            </td>
+            <td class="text-end">{{ "{:,}".format(r.clicks) }}</td>
+            <td class="text-end">{{ r.conversions }}</td>
+            <td class="text-end">{{ "%.2f"|format(r.cvr) }}%</td>
+            <td class="text-end">¥{{ "{:,.0f}".format(r.gross_sales) }}</td>
+            <td class="text-end text-success fw-bold">¥{{ "{:,.0f}".format(r.commission) }}</td>
+            <td class="small text-muted">{{ r.memo or '' }}</td>
+            <td>
+              <form method="post" action="/reports/{{ r.id }}/delete" onsubmit="return confirm('削除しますか？')">
+                <button type="submit" class="btn btn-xs btn-outline-danger btn-sm py-0 px-1"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9" class="text-center text-muted py-4">レポートデータがありません。手動入力またはCSVインポートしてください。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 手動入力モーダル -->
+<div class="modal fade" id="newReportModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">成果データ手動入力</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="post" action="/reports/new">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">日付 <span class="text-danger">*</span></label>
+              <input type="date" name="date_str" class="form-control" required value="{{ '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">クリエイター</label>
+              <select name="creator_id" class="form-select">
+                <option value="0">選択なし</option>
+                {% for c in creators %}
+                <option value="{{ c.id }}">{{ c.display_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">クリック数</label>
+              <input type="number" name="clicks" class="form-control" value="0" min="0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">CV件数</label>
+              <input type="number" name="conversions" class="form-control" value="0" min="0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">売上総額 (¥)</label>
+              <input type="number" name="gross_sales" class="form-control" step="1" value="0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">報酬額 (¥)</label>
+              <input type="number" name="commission" class="form-control" step="1" value="0">
+            </div>
+            <div class="col-12">
+              <label class="form-label">メモ</label>
+              <input type="text" name="memo" class="form-control" placeholder="キャンペーン名など">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+          <button type="submit" class="btn btn-success">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- CSVインポートモーダル -->
+<div class="modal fade" id="importModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">MyFansレポートCSVインポート</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="post" action="/reports/import/csv" enctype="multipart/form-data">
+        <div class="modal-body">
+          <div class="alert alert-info small">
+            <strong>CSVフォーマット:</strong> date, clicks, conversions, gross_sales, commission, memo
+          </div>
+          <input type="file" name="file" accept=".csv" class="form-control">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> インポート</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

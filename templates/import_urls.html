@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}URL一括投入{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <h2><i class="bi bi-link"></i> URL一括投入</h2>
+    <p class="text-muted">MyFans投稿URL・クリエイターURL・X URLを貼り付けて一括登録します。重複URLは自動スキップされます。</p>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <form method="post" action="/import/urls">
+          <div class="mb-3">
+            <label class="form-label fw-bold">URL一覧（1行1URL）</label>
+            <textarea name="urls_text" class="form-control font-monospace" rows="12"
+              placeholder="https://myfans.jp/creator123&#10;https://myfans.jp/creator456/posts/abc&#10;https://x.com/creator789"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-upload"></i> 登録する
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {% if results %}
+    <div class="card">
+      <div class="card-header">
+        <strong>登録結果</strong>
+        <span class="badge bg-success ms-2">追加: {{ results | selectattr('status','eq','added') | list | length }}</span>
+        <span class="badge bg-secondary ms-1">重複スキップ: {{ results | selectattr('status','eq','duplicate') | list | length }}</span>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-dark">
+            <tr><th>URL</th><th>種別</th><th>結果</th></tr>
+          </thead>
+          <tbody>
+            {% for r in results %}
+            <tr>
+              <td class="small text-truncate" style="max-width:400px;">{{ r.url }}</td>
+              <td>
+                {% if r.type == 'myfans_creator' %}<span class="badge bg-primary">クリエイター</span>
+                {% elif r.type == 'myfans_post' %}<span class="badge bg-info text-dark">投稿</span>
+                {% elif r.type == 'x_profile' %}<span class="badge bg-dark">X プロフィール</span>
+                {% elif r.type == 'x_post' %}<span class="badge bg-secondary">X 投稿</span>
+                {% else %}<span class="badge bg-light text-dark">不明</span>{% endif %}
+              </td>
+              <td>
+                {% if r.status == 'added' %}<span class="text-success"><i class="bi bi-check-circle"></i> 追加</span>
+                {% else %}<span class="text-secondary"><i class="bi bi-dash-circle"></i> 重複スキップ</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="mt-3">
+      <a href="/candidates" class="btn btn-outline-primary">候補者一覧を見る <i class="bi bi-arrow-right"></i></a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-4">
+    <div class="card bg-dark text-light">
+      <div class="card-header">判定ルール</div>
+      <div class="card-body small">
+        <ul class="mb-0">
+          <li><code>myfans.jp/creator</code> → クリエイターURL</li>
+          <li><code>myfans.jp/.../posts/</code> → 投稿URL</li>
+          <li><code>x.com/user</code> → Xプロフィール</li>
+          <li><code>x.com/user/status/</code> → X投稿</li>
+        </ul>
+        <hr>
+        <p class="mb-0">登録後は<a href="/candidates" class="text-info">候補者管理</a>で審査できます。</p>
+      </div>
+    </div>
+    <div class="card mt-3">
+      <div class="card-header">クイックリンク</div>
+      <div class="card-body">
+        <a href="/import/csv" class="btn btn-outline-secondary w-100 mb-2"><i class="bi bi-filetype-csv"></i> CSV取込</a>
+        <a href="/creator-intake" class="btn btn-outline-secondary w-100 mb-2"><i class="bi bi-person-plus"></i> クリエイター申請</a>
+        <a href="/link-queue" class="btn btn-outline-secondary w-100"><i class="bi bi-list-check"></i> リンクキュー</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}クリエイター管理 - MyFans Control Tower{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-people"></i> クリエイター管理</h4>
+  <div class="d-flex gap-2">
+    <a href="/creators/export/csv" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i> CSV出力</a>
+    <a href="/creators/new" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> 新規登録</a>
+  </div>
+</div>
+
+<!-- 検索・フィルター -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="名前・Xハンドル・タグ検索" value="{{ q }}">
+      </div>
+      <div class="col-md-3">
+        <select name="category" class="form-select form-select-sm">
+          <option value="">全カテゴリ</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="sort" class="form-select form-select-sm">
+          <option value="total_score" {% if sort == 'total_score' %}selected{% endif %}>スコア順</option>
+          <option value="direct_rate" {% if sort == 'direct_rate' %}selected{% endif %}>報酬率順</option>
+          <option value="estimated_aov" {% if sort == 'estimated_aov' %}selected{% endif %}>AOV順</option>
+          <option value="created_at" {% if sort == 'created_at' %}selected{% endif %}>登録順</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-sm btn-primary w-100">絞り込み</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- CSVインポート -->
+<div class="card mb-3 border-dashed">
+  <div class="card-body py-2">
+    <form method="post" action="/creators/import/csv" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
+      <small class="text-muted">CSVインポート:</small>
+      <input type="file" name="file" accept=".csv" class="form-control form-control-sm" style="max-width:220px">
+      <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-upload"></i> インポート</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>クリエイター</th>
+            <th>カテゴリ</th>
+            <th class="text-end">報酬率</th>
+            <th class="text-end">AOV</th>
+            <th class="text-center">スコア</th>
+            <th class="text-center">承認</th>
+            <th class="text-center">素材</th>
+            <th class="text-center">広告審査</th>
+            <th class="text-center">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for creator in creators %}
+          <tr class="{% if creator.approval_status == 'rejected' %}row-danger{% elif creator.approval_status == 'approved' %}row-approved{% endif %}">
+            <td>
+              <div class="fw-bold">{{ creator.display_name }}
+                {% if creator.adult_flag %}<span class="badge-adult">18+</span>{% endif %}
+              </div>
+              {% if creator.x_handle %}<div class="small text-muted">@{{ creator.x_handle }}</div>{% endif %}
+              {% if creator.myfans_profile_url %}
+              <a href="{{ creator.myfans_profile_url }}" target="_blank" class="small text-decoration-none"><i class="bi bi-box-arrow-up-right"></i> MyFans</a>
+              {% endif %}
+            </td>
+            <td><span class="badge bg-secondary">{{ creator.category or '-' }}</span></td>
+            <td class="text-end fw-bold">{{ "%.1f"|format(creator.direct_rate or 0) }}%</td>
+            <td class="text-end">¥{{ "{:,.0f}".format(creator.estimated_aov or 0) }}</td>
+            <td class="text-center">
+              {% set s = creator.total_score or 0 %}
+              <span class="{% if s >= 70 %}score-high{% elif s >= 40 %}score-mid{% else %}score-low{% endif %}">{{ "%.0f"|format(s) }}</span>
+            </td>
+            <td class="text-center">
+              <span class="badge {% if creator.approval_status == 'approved' %}bg-success{% elif creator.approval_status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                {{ creator.approval_status }}
+              </span>
+            </td>
+            <td class="text-center">
+              <span class="badge {% if creator.material_permission_status == 'approved' %}bg-success{% elif creator.material_permission_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                {{ creator.material_permission_status }}
+              </span>
+            </td>
+            <td class="text-center">
+              <span class="badge {% if creator.myfans_ad_review_status == 'approved' %}bg-success{% elif creator.myfans_ad_review_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                {{ creator.myfans_ad_review_status }}
+              </span>
+            </td>
+            <td class="text-center">
+              <a href="/creators/{{ creator.id }}/edit" class="btn btn-xs btn-outline-primary btn-sm py-0 px-2">編集</a>
+              <form method="post" action="/creators/{{ creator.id }}/delete" class="d-inline" onsubmit="return confirm('削除しますか？')">
+                <button type="submit" class="btn btn-xs btn-outline-danger btn-sm py-0 px-2">削除</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9" class="text-center text-muted py-4">クリエイターが登録されていません。<a href="/creators/new">新規登録</a>してください。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}コンプライアンスチェック - MyFans Control Tower{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-shield-check"></i> コンプライアンスチェック</h4>
+  <form method="post" action="/compliance/check-all">
+    <button type="submit" class="btn btn-sm btn-warning"><i class="bi bi-arrow-clockwise"></i> 全件チェック実行</button>
+  </form>
+</div>
+
+<div class="alert alert-warning small">
+  <i class="bi bi-exclamation-triangle"></i>
+  <strong>コンプライアンス基準:</strong>
+  PR表記 / 18歳未満不可表記 / アフィリエイトURL設定 / 素材権利確認(approved) / MyFans広告審査(approved) /
+  クリエイター承認 / 禁止ワードなし / 重複投稿なし / 同一クリエイター連投なし
+</div>
+
+{% for item in compliance_data %}
+{% set draft = item.draft %}
+{% set creator = item.creator %}
+{% set logs = item.logs %}
+{% set score = draft.compliance_score or 0 %}
+
+<div class="card mb-3 {% if score < 60 %}border-danger{% elif score < 80 %}border-warning{% else %}border-success{% endif %}">
+  <div class="card-header d-flex justify-content-between align-items-center py-2">
+    <div>
+      <span class="badge status-{{ draft.status }} me-2">{{ draft.status }}</span>
+      <span class="fw-bold">{{ draft.title or draft.body[:40] }}...</span>
+      {% if creator %}<span class="text-muted ms-2 small">by {{ creator.display_name }}</span>{% endif %}
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="fw-bold {% if score >= 80 %}score-high{% elif score >= 60 %}score-mid{% else %}score-low{% endif %}">
+        スコア: {{ "%.0f"|format(score) }}
+      </span>
+      {% if draft.status in ['draft', 'needs_review'] %}
+        {% if score >= 60 and not draft.manual_review_required %}
+        <form method="post" action="/drafts/{{ draft.id }}/approve">
+          <button type="submit" class="btn btn-xs btn-success btn-sm py-0 px-2">承認</button>
+        </form>
+        {% else %}
+        <span class="badge bg-danger">承認不可</span>
+        {% endif %}
+      {% endif %}
+      <a href="/drafts/{{ draft.id }}/edit" class="btn btn-xs btn-outline-primary btn-sm py-0 px-2">編集</a>
+    </div>
+  </div>
+  <div class="card-body py-2">
+    <div class="row g-2">
+      <div class="col-md-5">
+        <div class="draft-body-preview border rounded p-2 bg-light" style="max-height:100px">{{ draft.body }}</div>
+      </div>
+      <div class="col-md-7">
+        <div class="row g-1">
+          {% for log in logs %}
+          <div class="col-12">
+            <div class="d-flex align-items-start gap-2">
+              <span class="compliance-{{ log.result }} flex-shrink-0">
+                {% if log.result == 'ok' %}<i class="bi bi-check-circle-fill"></i>
+                {% elif log.result == 'warning' %}<i class="bi bi-exclamation-triangle-fill"></i>
+                {% else %}<i class="bi bi-x-circle-fill"></i>{% endif %}
+              </span>
+              <div>
+                <span class="small fw-bold">{{ log.check_name }}</span>
+                <span class="small text-muted ms-1">{{ log.message }}</span>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="col-12 text-muted small">チェック未実施。<a href="/drafts/{{ draft.id }}/edit">編集ページ</a>から保存するとチェックが実行されます。</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-shield-check" style="font-size:3rem"></i>
+  <p class="mt-2">チェック対象の下書きがありません。</p>
+  <a href="/drafts/new" class="btn btn-primary">新規下書き作成</a>
+</div>
+{% endfor %}
+{% endblock %}

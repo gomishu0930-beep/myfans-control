@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}ダッシュボード - MyFans Control Tower{% endblock %}
+{% block content %}
+<div class="row mb-3">
+  <div class="col">
+    <h4 class="fw-bold mb-0"><i class="bi bi-speedometer2 text-purple"></i> ダッシュボード</h4>
+    <small class="text-muted">月収20万円達成に向けた進捗管理</small>
+  </div>
+</div>
+
+<!-- KPIカード -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="stat-label">総クリック数</div>
+        <div class="stat-value">{{ "{:,}".format(total_clicks) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="stat-label">CV件数</div>
+        <div class="stat-value">{{ "{:,}".format(total_conversions) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="stat-label">累計売上</div>
+        <div class="stat-value">¥{{ "{:,.0f}".format(total_gross_sales) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100" style="border-color:#059669">
+      <div class="card-body">
+        <div class="stat-label">累計報酬</div>
+        <div class="stat-value" style="color:#059669">¥{{ "{:,.0f}".format(total_commission) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100" style="border-color:#0ea5e9">
+      <div class="card-body">
+        <div class="stat-label">総投稿数</div>
+        <div class="stat-value" style="color:#0ea5e9">{{ total_posts }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100" style="border-color:#d97706">
+      <div class="card-body">
+        <div class="stat-label">承認済み投稿</div>
+        <div class="stat-value" style="color:#d97706">{{ approved_posts }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100" style="border-color:#6366f1">
+      <div class="card-body">
+        <div class="stat-label">CVR</div>
+        <div class="stat-value" style="color:#6366f1">{{ "%.2f"|format(cvr) }}%</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100" style="border-color:#ec4899">
+      <div class="card-body">
+        <div class="stat-label">平均報酬率</div>
+        <div class="stat-value" style="color:#ec4899">{{ "%.1f"|format(avg_commission_rate) }}%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 目標達成計算 -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-bullseye"></i> 月収20万円への逆算</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr>
+              <td class="text-muted">目標月間報酬</td>
+              <td class="fw-bold text-success">¥{{ "{:,.0f}".format(target) }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">必要流通額</td>
+              <td class="fw-bold">¥{{ "{:,.0f}".format(needed_sales) }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">必要購入件数</td>
+              <td class="fw-bold">{{ "{:,.0f}".format(needed_purchases) }} 件</td>
+            </tr>
+            <tr>
+              <td class="text-muted">必要クリック数（月間）</td>
+              <td class="fw-bold">{{ "{:,.0f}".format(needed_clicks) }} クリック</td>
+            </tr>
+            <tr class="table-warning">
+              <td class="text-muted fw-bold">1日あたり必要クリック数</td>
+              <td class="fw-bold text-danger">{{ "{:,.0f}".format(daily_clicks) }} クリック/日</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="mt-3">
+          {% set progress = (total_commission / target * 100) if target > 0 else 0 %}
+          <div class="d-flex justify-content-between small mb-1">
+            <span>目標達成率</span>
+            <span class="fw-bold">{{ "%.1f"|format([progress, 100]|min) }}%</span>
+          </div>
+          <div class="progress goal-progress">
+            <div class="progress-bar bg-success" style="width: {{ [progress, 100]|min }}%"></div>
+          </div>
+        </div>
+        <div class="mt-2">
+          <small class="text-muted">設定値: AOV=¥{{ "{:,.0f}".format(settings.estimated_aov if settings else 5000) }} / CVR={{ settings.estimated_cvr if settings else 1.0 }}% / 報酬率={{ settings.default_commission_rate if settings else 15.0 }}%</small>
+          <a href="/settings" class="ms-2 small">変更</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-trophy"></i> 売上上位クリエイター</div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead><tr><th>クリエイター</th><th class="text-end">売上</th><th class="text-end">報酬</th></tr></thead>
+          <tbody>
+            {% for creator, total_sales, total_commission in top_creators_by_sales %}
+            <tr>
+              <td>
+                <a href="/creators/{{ creator.id }}/edit" class="text-decoration-none">{{ creator.display_name }}</a>
+                {% if creator.adult_flag %}<span class="badge-adult ms-1">18+</span>{% endif %}
+              </td>
+              <td class="text-end">¥{{ "{:,.0f}".format(total_sales or 0) }}</td>
+              <td class="text-end text-success">¥{{ "{:,.0f}".format(total_commission or 0) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-3">データなし</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- クイックアクション -->
+<div class="row g-3">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-lightning"></i> クイックアクション</div>
+      <div class="card-body d-flex flex-wrap gap-2">
+        <a href="/creators/new" class="btn btn-sm btn-outline-primary"><i class="bi bi-person-plus"></i> クリエイター追加</a>
+        <a href="/drafts/new" class="btn btn-sm btn-outline-success"><i class="bi bi-pencil-square"></i> 新規下書き</a>
+        <a href="/drafts/new?template_type=introduction" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-person"></i> クリエイター紹介テンプレート</a>
+        <a href="/drafts/new?template_type=ranking" class="btn btn-sm btn-outline-secondary"><i class="bi bi-list-ol"></i> ランキングテンプレート</a>
+        <a href="/compliance" class="btn btn-sm btn-outline-warning"><i class="bi bi-shield-check"></i> コンプライアンス確認</a>
+        <a href="/reports" class="btn btn-sm btn-outline-info"><i class="bi bi-bar-chart"></i> レポート入力</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

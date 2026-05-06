@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}{% if draft %}下書き編集{% else %}新規下書き{% endif %} - MyFans Control Tower{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-pencil-square"></i> {% if draft %}下書き編集{% else %}新規下書き作成{% endif %}</h4>
+  <a href="/drafts" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> 一覧に戻る</a>
+</div>
+
+{% if draft and draft.compliance_notes %}
+<div class="alert alert-{% if draft.compliance_score and draft.compliance_score >= 80 %}success{% elif draft.compliance_score and draft.compliance_score >= 60 %}warning{% else %}danger{% endif %} mb-3">
+  <strong><i class="bi bi-shield-check"></i> コンプライアンスチェック結果 (スコア: {{ "%.0f"|format(draft.compliance_score or 0) }})</strong>
+  <pre class="mb-0 mt-1 small">{{ draft.compliance_notes }}</pre>
+</div>
+{% endif %}
+
+<form method="post" action="{% if draft %}/drafts/{{ draft.id }}/edit{% else %}/drafts/new{% endif %}">
+  <div class="row g-3">
+    <!-- テンプレート選択 (新規のみ) -->
+    {% if not draft %}
+    <div class="col-12">
+      <div class="card bg-light">
+        <div class="card-body py-2">
+          <label class="form-label small fw-bold">テンプレートから作成</label>
+          <div class="d-flex gap-2 flex-wrap">
+            {% for t in template_keys %}
+            <a href="/drafts/new?template_type={{ t }}" class="btn btn-sm {% if template_type == t %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+              {{ t }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">投稿内容</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">タイトル（管理用）</label>
+            <input type="text" name="title" class="form-control" value="{{ draft.title if draft else '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">投稿本文 <span class="text-danger">*</span></label>
+            <textarea name="body" id="bodyText" class="form-control font-monospace" rows="10" required>{{ draft.body if draft else prefill_body }}</textarea>
+            <div class="d-flex justify-content-between mt-1">
+              <small class="text-muted">文字数: <span id="charCount">0</span></small>
+              <button type="button" class="btn btn-xs btn-outline-secondary btn-sm py-0" onclick="copyText(document.getElementById('bodyText').value)">
+                <i class="bi bi-copy"></i> 本文をコピー
+              </button>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">ハッシュタグ</label>
+            <input type="text" name="hashtags" class="form-control" placeholder="#MyFans #アフィリエイト" value="{{ draft.hashtags if draft else '' }}">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card mb-3">
+        <div class="card-header">投稿設定</div>
+        <div class="card-body">
+          <div class="mb-2">
+            <label class="form-label small">投稿タイプ <span class="text-danger">*</span></label>
+            <select name="post_type" class="form-select form-select-sm">
+              {% for t in ['introduction', 'ranking', 'campaign', 'knowhow'] %}
+              <option value="{{ t }}" {% if draft and draft.post_type == t %}selected{% elif template_type == t %}selected{% endif %}>{{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">クリエイター <span class="text-danger">*</span></label>
+            <select name="creator_id" class="form-select form-select-sm" id="creatorSelect">
+              {% for c in creators %}
+              <option value="{{ c.id }}"
+                {% if draft and draft.creator_id == c.id %}selected
+                {% elif selected_creator_id == c.id %}selected{% endif %}>
+                {{ c.display_name }}{% if c.adult_flag %} [18+]{% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">アフィリエイトリンク</label>
+            <select name="affiliate_link_id" class="form-select form-select-sm">
+              <option value="0">なし</option>
+              {% for l in links %}
+              <option value="{{ l.id }}" {% if draft and draft.affiliate_link_id == l.id %}selected{% endif %}>
+                {{ l.affiliate_url[:40] }}... ({{ "%.0f"|format(l.estimated_rate) }}%)
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">添付素材</label>
+            <select name="asset_id" class="form-select form-select-sm">
+              <option value="0">なし</option>
+              {% for a in assets %}
+              <option value="{{ a.id }}" {% if draft and draft.asset_id == a.id %}selected{% endif %}>
+                [{{ a.asset_type }}] {{ a.asset_url[:30] if a.asset_url else a.local_path }}...
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">投稿先アカウント</label>
+            <input type="text" name="account_name" class="form-control form-control-sm" placeholder="@handle" value="{{ draft.account_name if draft else (settings.x_account_name if settings else '') }}">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">投稿予定日時</label>
+            <input type="datetime-local" name="scheduled_at" class="form-control form-control-sm"
+              value="{{ draft.scheduled_at.strftime('%Y-%m-%dT%H:%M') if draft and draft.scheduled_at else '' }}">
+          </div>
+        </div>
+      </div>
+
+      {% if settings %}
+      <div class="card bg-light">
+        <div class="card-body py-2">
+          <small class="text-muted fw-bold">デフォルト文言（コピーして使用）</small>
+          <div class="mt-1">
+            <small>PR表記: <button type="button" class="copy-btn" onclick="copyText('{{ settings.default_pr_text }}')">{{ settings.default_pr_text }}</button></small>
+          </div>
+          <div class="mt-1">
+            <small>年齢確認: <button type="button" class="copy-btn" onclick="copyText('{{ settings.default_age_warning }}')">コピー</button></small>
+            <div class="small text-muted">{{ settings.default_age_warning }}</div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="col-12">
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> 保存（コンプライアンスチェック実行）</button>
+        {% if draft %}
+        <a href="/drafts/{{ draft.id }}/edit" class="btn btn-outline-warning"><i class="bi bi-shield-check"></i> 再チェック</a>
+        {% endif %}
+        <a href="/drafts" class="btn btn-outline-secondary">キャンセル</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+const body = document.getElementById('bodyText');
+function updateCount() {
+  document.getElementById('charCount').textContent = body.value.length;
+}
+body.addEventListener('input', updateCount);
+updateCount();
+</script>
+{% endblock %}

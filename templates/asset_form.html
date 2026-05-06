@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}素材追加{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-9">
+    <h2><i class="bi bi-image-fill"></i> 素材を追加</h2>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="alert alert-warning small">
+      <i class="bi bi-exclamation-triangle"></i>
+      <strong>禁止：</strong>MyFans有料投稿のスクリーンショット・画面録画・無断切り抜きは登録不可です。
+      creator_provided の動画のみアップロード可能です。
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <form method="post" action="/assets/new" enctype="multipart/form-data">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">クリエイター <span class="text-danger">*</span></label>
+              <select name="creator_id" class="form-select" required>
+                <option value="">-- 選択 --</option>
+                {% for c in creators %}
+                <option value="{{ c.id }}">{{ c.display_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">素材種別</label>
+              <select name="asset_type" class="form-select" id="assetType">
+                {% for t in asset_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">ソース種別</label>
+              <select name="source_type" class="form-select" id="sourceType">
+                {% for t in source_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">ファイルアップロード（creator_provided動画のみ）</label>
+              <input type="file" name="file" class="form-control" id="fileInput"
+                     accept="image/*,video/*">
+              <div class="form-text">画像: image/* / 動画: mp4（creator_provided のみ）</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">ソースURL（X投稿URLなど）</label>
+              <input type="url" name="source_url" class="form-control"
+                     placeholder="https://x.com/user/status/xxx">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">権利確認ステータス</label>
+              <select name="rights_status" class="form-select">
+                {% for s in rights_statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">アダルト度</label>
+              <select name="adult_level" class="form-select" id="adultLevel">
+                {% for l in adult_levels %}<option value="{{ l }}">{{ l }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">MyFans広告審査</label>
+              <select name="myfans_ad_review_status" class="form-select">
+                {% for s in ad_review_statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-bold">掲載許可プラットフォーム（カンマ区切り）</label>
+              <input type="text" name="allowed_platforms" class="form-control"
+                     placeholder="x, lp, note, blog（またはnone）" value="none">
+              <div class="form-text">adult/explicit + x の場合、センシティブ設定が自動で有効になります。</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">使用期限</label>
+              <input type="date" name="usage_expiry_date" class="form-control">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <div class="form-check">
+                <input type="checkbox" name="sensitive_required" value="true" class="form-check-input" id="sensitiveReq">
+                <label class="form-check-label" for="sensitiveReq">センシティブ設定必須（X）</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">クリエイター許諾メモ（X投稿素材の場合は必須）</label>
+              <textarea name="creator_permission_note" class="form-control" rows="2"
+                placeholder="許可を得た経緯、DM日時、スクリーンショット保存場所など"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">NGメモ</label>
+              <textarea name="ng_notes" class="form-control" rows="1"
+                placeholder="この素材でNGな使い方、場所など"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">メモ</label>
+              <textarea name="memo" class="form-control" rows="1"></textarea>
+            </div>
+          </div>
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-upload"></i> 登録する
+            </button>
+            <a href="/assets" class="btn btn-outline-secondary">キャンセル</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+// video upload: only allow if source_type == creator_provided
+document.getElementById('fileInput').addEventListener('change', function() {
+  const src = document.getElementById('sourceType').value;
+  const type = document.getElementById('assetType').value;
+  if (this.files[0] && this.files[0].type.startsWith('video/') && src !== 'creator_provided') {
+    alert('動画は creator_provided のみアップロード可能です。');
+    this.value = '';
+  }
+});
+// Auto-check sensitive if adult/explicit
+document.getElementById('adultLevel').addEventListener('change', function() {
+  const pl = document.querySelector('[name=allowed_platforms]').value;
+  if (['adult','explicit'].includes(this.value) && pl.includes('x')) {
+    document.getElementById('sensitiveReq').checked = true;
+  }
+});
+</script>
+{% endblock %}
+{% endblock %}

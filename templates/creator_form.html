@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}{% if creator %}クリエイター編集{% else %}クリエイター登録{% endif %} - MyFans Control Tower{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0">
+    <i class="bi bi-person{% if not creator %}-plus{% endif %}"></i>
+    {% if creator %}{{ creator.display_name }} を編集{% else %}クリエイター新規登録{% endif %}
+  </h4>
+  <a href="/creators" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> 一覧に戻る</a>
+</div>
+
+<form method="post" action="{% if creator %}/creators/{{ creator.id }}/edit{% else %}/creators/new{% endif %}">
+  <div class="row g-3">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">基本情報</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">表示名 <span class="text-danger">*</span></label>
+              <input type="text" name="display_name" class="form-control" required value="{{ creator.display_name if creator else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Xハンドル</label>
+              <div class="input-group">
+                <span class="input-group-text">@</span>
+                <input type="text" name="x_handle" class="form-control" value="{{ creator.x_handle if creator else '' }}">
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">MyFansプロフィールURL</label>
+              <input type="url" name="myfans_profile_url" class="form-control" value="{{ creator.myfans_profile_url if creator else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">カテゴリ</label>
+              <input type="text" name="category" class="form-control" list="category-list" value="{{ creator.category if creator else '' }}">
+              <datalist id="category-list">
+                <option value="グラビア">
+                <option value="コスプレ">
+                <option value="フィットネス">
+                <option value="ライフスタイル">
+                <option value="アダルト">
+              </datalist>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">タグ（カンマ区切り）</label>
+              <input type="text" name="tags" class="form-control" value="{{ creator.tags if creator else '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">メモ</label>
+              <textarea name="memo" class="form-control" rows="2">{{ creator.memo if creator else '' }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card mb-3">
+        <div class="card-header">フラグ・ステータス</div>
+        <div class="card-body">
+          <div class="mb-2">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="adult_flag" value="true" {% if not creator or creator.adult_flag %}checked{% endif %}>
+              <label class="form-check-label">成人向けコンテンツ（18+）</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="affiliate_enabled" value="true" {% if not creator or creator.affiliate_enabled %}checked{% endif %}>
+              <label class="form-check-label">アフィリエイト有効</label>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">承認ステータス</label>
+            <select name="approval_status" class="form-select form-select-sm">
+              {% for s in ['pending', 'approved', 'rejected'] %}
+              <option value="{{ s }}" {% if creator and creator.approval_status == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">素材利用許諾</label>
+            <select name="material_permission_status" class="form-select form-select-sm">
+              {% for s in ['pending', 'approved', 'rejected'] %}
+              <option value="{{ s }}" {% if creator and creator.material_permission_status == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">MyFans広告審査</label>
+            <select name="myfans_ad_review_status" class="form-select form-select-sm">
+              {% for s in ['pending', 'approved', 'rejected'] %}
+              <option value="{{ s }}" {% if creator and creator.myfans_ad_review_status == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">報酬設定</div>
+        <div class="card-body">
+          <div class="mb-2">
+            <label class="form-label small">直接報酬率 (%)</label>
+            <input type="number" name="direct_rate" class="form-control form-control-sm" step="0.1" min="0" max="100" value="{{ creator.direct_rate if creator else 10.0 }}">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">カテゴリ報酬率 (%)</label>
+            <input type="number" name="category_rate" class="form-control form-control-sm" step="0.1" min="0" max="100" value="{{ creator.category_rate if creator else 10.0 }}">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">推定AOV (¥)</label>
+            <input type="number" name="estimated_aov" class="form-control form-control-sm" step="100" min="0" value="{{ creator.estimated_aov if creator else 5000 }}">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">報酬率メモ</label>
+            <input type="text" name="actual_rate_note" class="form-control form-control-sm" value="{{ creator.actual_rate_note if creator else '' }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">スコア（手動）</div>
+        <div class="card-body">
+          {% for label, field in [('コンテンツ品質', 'content_quality_score'), ('エンゲージメント', 'engagement_score'), ('CV実績', 'conversion_score'), ('信頼スコア', 'trust_score')] %}
+          <div class="mb-2">
+            <label class="form-label small">{{ label }} (0-100)</label>
+            <input type="number" name="{{ field }}" class="form-control form-control-sm" min="0" max="100" value="{{ creator[field] if creator and creator[field] else 0 }}">
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> 保存</button>
+        <a href="/creators" class="btn btn-outline-secondary">キャンセル</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
