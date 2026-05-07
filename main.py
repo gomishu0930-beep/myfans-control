@@ -28,6 +28,7 @@ from routers.link_queue import router as link_queue_router
 from routers.assets import router as assets_router
 from routers.cards import router as cards_router
 from routers.auto_import import router as auto_import_router
+from routers.affiliate_copy_desk import router as affiliate_copy_desk_router
 
 app.include_router(dashboard_router)
 app.include_router(creators_router)
@@ -42,6 +43,7 @@ app.include_router(link_queue_router)
 app.include_router(assets_router)
 app.include_router(cards_router)
 app.include_router(auto_import_router)
+app.include_router(affiliate_copy_desk_router)
 
 
 @app.get("/")

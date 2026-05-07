@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Affiliate Copy Desk{% endblock %}
+{% block content %}
+<div id="affiliateCopyDeskRoot">
+  <main class="app-shell">
+    <section class="search-pane" aria-label="作品検索">
+      <div class="topbar">
+        <div>
+          <h1>myfans Affiliate Copy Desk</h1>
+          <p id="resultSummary">読み込み中</p>
+        </div>
+        <button class="icon-button" id="resetFilters" type="button" aria-label="絞り込みをリセット" title="絞り込みをリセット">
+          <i data-lucide="rotate-ccw"></i>
+        </button>
+      </div>
+
+      <div class="controls">
+        <label class="field">
+          <span>ジャンル検索</span>
+          <div class="input-wrap">
+            <i data-lucide="search"></i>
+            <input id="genreSearch" type="search" placeholder="例: 巨乳、長尺、限定、作者名" autocomplete="off" />
+          </div>
+        </label>
+
+        <div class="filter-row" aria-label="ジャンル候補">
+          <button class="chip active" type="button" data-chip="巨乳">巨乳</button>
+          <button class="chip" type="button" data-chip="長尺">長尺</button>
+          <button class="chip" type="button" data-chip="短尺">短尺</button>
+          <button class="chip" type="button" data-chip="限定">限定</button>
+          <button class="chip" type="button" data-chip="50%">50%</button>
+        </div>
+
+        <div class="select-grid">
+          <label class="field">
+            <span>作者</span>
+            <select id="creatorFilter"></select>
+          </label>
+          <label class="field">
+            <span>尺</span>
+            <select id="durationFilter">
+              <option value="all">すべて</option>
+              <option value="short">5分未満</option>
+              <option value="middle">5-30分</option>
+              <option value="long">30分以上</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>報酬率</span>
+            <select id="rateFilter">
+              <option value="all">すべて</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="result-list" id="resultList" aria-live="polite"></div>
+    </section>
+
+    <section class="detail-pane" aria-label="コピペ素材">
+      <div class="detail-header">
+        <div>
+          <p class="eyebrow" id="selectedMeta">未選択</p>
+          <h2 id="selectedTitle">作品を選択</h2>
+        </div>
+        <button class="primary-button" id="copyAll" type="button">
+          <i data-lucide="copy"></i>
+          全部コピー
+        </button>
+      </div>
+
+      <div class="preview-band">
+        <img id="previewImage" alt="" />
+        <div class="preview-info">
+          <span id="durationBadge">--:--</span>
+          <span id="rateBadge">報酬率 --%</span>
+          <a id="affiliateLink" href="#" target="_blank" rel="noopener noreferrer">アフィリリンク</a>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="素材種別">
+        <button class="tab active" type="button" data-tab="post">投稿文</button>
+        <button class="tab" type="button" data-tab="images">生成画像</button>
+        <button class="tab" type="button" data-tab="assets">添付素材</button>
+        <button class="tab" type="button" data-tab="prompt">生成プロンプト</button>
+      </div>
+
+      <div class="copy-surface">
+        <div class="panel active" id="panel-post">
+          <div class="panel-actions">
+            <h3>投稿文</h3>
+            <button class="small-button" type="button" data-copy-target="postOutput">
+              <i data-lucide="clipboard"></i>
+              コピー
+            </button>
+          </div>
+          <textarea id="postOutput" spellcheck="false"></textarea>
+        </div>
+
+        <div class="panel" id="panel-images">
+          <div class="panel-actions">
+            <h3>生成画像</h3>
+            <div class="image-actions">
+              <div class="segmented" aria-label="生成枚数">
+                <button class="segment active" type="button" data-image-count="2">2枚</button>
+                <button class="segment" type="button" data-image-count="4">4枚</button>
+              </div>
+              <button class="small-button" type="button" id="generateImages">
+                <i data-lucide="sparkles"></i>
+                image2生成
+              </button>
+              <button class="small-button" type="button" id="copyImageList">
+                <i data-lucide="copy"></i>
+                画像URL
+              </button>
+            </div>
+          </div>
+          <div class="generated-grid" id="generatedGrid"></div>
+        </div>
+
+        <div class="panel" id="panel-assets">
+          <div class="panel-actions">
+            <h3>添付素材</h3>
+            <button class="small-button" type="button" data-copy-target="assetOutput">
+              <i data-lucide="clipboard"></i>
+              コピー
+            </button>
+          </div>
+          <textarea id="assetOutput" spellcheck="false"></textarea>
+        </div>
+
+        <div class="panel" id="panel-prompt">
+          <div class="panel-actions">
+            <h3>生成プロンプト</h3>
+            <button class="small-button" type="button" data-copy-target="promptOutput">
+              <i data-lucide="clipboard"></i>
+              コピー
+            </button>
+          </div>
+          <textarea id="promptOutput" spellcheck="false"></textarea>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}
+
+{% block scripts %}
+<link href="/static/affiliate-copy-desk/styles.css" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  window.AFFILIATE_COPY_DESK_DATA_URL = "/static/affiliate-copy-desk/data/myfans_affiliate_content_200.json";
+  window.AFFILIATE_COPY_DESK_IMAGE_API_URL = "/api/affiliate-copy-desk/generate-images";
+</script>
+<script src="/static/affiliate-copy-desk/app.js"></script>
+{% endblock %}
