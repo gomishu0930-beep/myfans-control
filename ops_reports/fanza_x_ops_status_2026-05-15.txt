@@ -1,0 +1,53 @@
+FANZA X Autonomous Ops Status
+Generated: 2026-05-15 JST
+
+Current production account
+- X_ACCOUNT: SENPAI
+- Username confirmed by X API: @ero_senpai1
+- X API check: OK
+
+Runtime
+- Project npm scripts use Node.js 24 LTS through scripts/node_lts.sh
+- Confirmed version: v24.15.0
+
+Posting state
+- Successful posted CIDs: snos00149, snos00038
+- History count: 2
+- Pending replies: 0
+- Unposted local assets: 3
+
+Active automations
+- 04:30 JST: X post performance refresh
+- 04:45 JST: FANZA revenue CSV import
+- 05:00 JST: X/FANZA learning refresh, capped at 100 posts
+- 10:30 JST: FANZA local X posts, 2 posts
+- 17:00 JST: FANZA local X posts, 2 posts
+- 20:00 JST: FANZA local X posts, 2 posts
+- 12:00 JST today: one-time noon confirmation run
+
+Safety controls
+- Legacy MyFans auto-post automations are paused.
+- FANZA cycle uses a lock file to prevent duplicate concurrent posting.
+- Parent posts are saved before reply creation to prevent duplicate parent posts.
+- Pending replies are retried at the start of future cycles.
+- X API preflight runs before production posting.
+- X media upload, parent post creation, and reply creation each retry up to 4 times.
+
+Important local files
+- scripts/run_local_fanza_cycle.mjs
+- scripts/post_local_fanza_asset.mjs
+- scripts/check_x_post_environment.mjs
+- scripts/retry_pending_fanza_replies.mjs
+- fanza_local_post_state.json
+- fanza_local_cycle.log
+- fanza_local_post.log
+- fanza_environment_check.log
+- x_post_performance.json
+- x_post_performance_rules.json
+- fanza_revenue_reports/fanza_revenue_summary.json
+- fanza_revenue_signals.json
+
+Operational note
+- The 2026-05-15 10:30 JST failure was traced to a low-level X API request failure during media upload.
+- Current X API checks are passing.
+- Node LTS and X API retries have been implemented to reduce recurrence risk.
